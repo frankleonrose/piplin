@@ -1,6 +1,7 @@
 (ns piplin.test.modules
   (:use clojure.test)
-  (:refer-clojure :as clj :exclude [not= + - * inc dec < > <= >= = cast not bit-and bit-or bit-xor bit-not and or bit-shift-left bit-shift-right pos? neg? zero?])
+  (:refer-clojure :exclude [not= + - * inc dec < > <= >= = cast not bit-and bit-or bit-xor bit-not and or bit-shift-left bit-shift-right pos? neg? zero?])
+  (:require [clojure.core :as clj])
   (:use [piplin.types boolean numbers core-impl binops uintm])
   (:use plumbing.core)
   (:use [piplin types math modules]))

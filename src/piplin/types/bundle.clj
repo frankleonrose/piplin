@@ -70,7 +70,7 @@
       (let [casted-obj (into {}
                              (map (fn [[k v]]
                                     [k (cast v (get obj k))])
-                                   schema))]
+                                  schema))]
         (if (every? pipinst? (vals obj))
           (instance type casted-obj :constrain)
           (mkast-explicit-keys type :make-bundle
@@ -132,7 +132,7 @@
                        (and (isa-type? (k schema)
                                        (typeof v))
                             (pipinst? v)))
-                         (value inst))]
+                     (value inst))]
     (when-let [bad (seq (util/sym-diff (set (keys schema))
                                   (set (keys (value inst)))))]
       (throw+ (error "These keys either didn't have a value"

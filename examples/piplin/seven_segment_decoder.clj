@@ -1,7 +1,8 @@
 (ns piplin.seven-segment-decoder
   (:use clojure.test)
   (:use [slingshot.slingshot :only [throw+]])
-  (:refer-clojure :as clj :exclude [not= bit-or cond bit-xor + - * bit-and assoc assoc-in inc dec bit-not condp < > <= >= = cast not and or bit-shift-left bit-shift-right pos? neg? zero?])
+  (:refer-clojure :exclude [not= bit-or cond bit-xor + - * bit-and assoc assoc-in inc dec bit-not condp < > <= >= = cast not and or bit-shift-left bit-shift-right pos? neg? zero?])
+  (:require [clojure.core :as clj])
   (:use plumbing.core
         [piplin core]))
 

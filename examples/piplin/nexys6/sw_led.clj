@@ -1,5 +1,6 @@
 (ns piplin.nexys6.sw-led
-  (:refer-clojure :as clj :exclude [not= bit-or bit-xor + - * bit-and inc dec bit-not < > <= >= = cast not cond condp and or bit-shift-left bit-shift-right])
+  (:refer-clojure :exclude [not= bit-or bit-xor + - * bit-and inc dec bit-not < > <= >= = cast not cond condp and or bit-shift-left bit-shift-right])
+  (:require [clojure.core :as clj])
   (:use [piplin.types.union :only [get-tag get-value]]
         piplin.core)
   (:use plumbing.core)

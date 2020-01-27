@@ -227,12 +227,12 @@
                     #(condp = % \0 0 \1 1
                        (do
                          (throw (IllegalArgumentException.
-                                (str "invalid bit: " %))))))
+                                 (str "invalid bit: " %))))))
                   vec)]
     `((bits (count ~bit-vec)) ~bit-vec)))
 
 (defn binary-literal
-  [rdr letter-b]
+  [rdr letter-b _ _]
   (loop [v []
          ch (clojure.lang.LispReader/read1 rdr)]
     (if (#{(int \0) (int \1) (int \_)} ch)

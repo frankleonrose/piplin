@@ -3,7 +3,6 @@
   (:refer-clojure :exclude [cast])
   (:use [slingshot.slingshot])
   (:use [piplin protocols types])
-  (:use [clojure.core.incubator :only [seqable?]])
   (:use [piplin.types bits [uintm :only [uintm]]]))
 
 (defpiplintype Array [array-len array-type])
