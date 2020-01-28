@@ -9,10 +9,10 @@
 
 (defmacro defenum
   [name & values]
-  `(def ~name (enum (conj #{} ~@values))))
+  `(def ~name 
+    (enum (into {} (map #(identity [%1 (cast (bits 5) %2)]) [~@values] (range))))))
 
 ;; Register index
-;; TODO indices are wrong for the decoder
 (defenum rindx
   :r0
   :r1
@@ -100,8 +100,8 @@
   :mfc0  (bundle {:rdst rindx :cop0src cp0indx})
   :mtc0  (bundle {:rsrc rindx :cop0dst cp0indx})
 
-  :illegal (bits 1)
-  )
+  :illegal (bits 1))
+  
 
 (defn- ->instr
   "Takes a nested map that has the same structure
@@ -230,9 +230,9 @@
       (:mfc0 {:keys [rdst cop0src]}
              (bit-cat opRS, rsMFC0, rdst, cop0src, #b000_000_000_00))
       (:mtc0 {:keys [rsrc cop0dst]}
-             (bit-cat opRS, rsMTC0, rsrc, cop0dst, #b000_000_000_00))
-      )
-    )
+             (bit-cat opRS, rsMTC0, rsrc, cop0dst, #b000_000_000_00))))
+      
+    
 
   (defn decode
     [instr-bits]
@@ -263,22 +263,22 @@
         opBGTZ (->instr {:bgtz { :rsrc rs :offset imm}})
         opFUNC  
         (condp = funct
-          fcSLL   (->instr {:sll   {:rsrc rt  :rdst rd  :shamt shamt }})
-          fcSRL   (->instr {:srl   {:rsrc rt  :rdst rd  :shamt shamt }})
-          fcSRA   (->instr {:sra   {:rsrc rt  :rdst rd  :shamt shamt }})
-          fcSLLV  (->instr {:sllv  {:rsrc rt  :rdst rd  :rshamt rs   }})
-          fcSRLV  (->instr {:srlv  {:rsrc rt  :rdst rd  :rshamt rs   }})
-          fcSRAV  (->instr {:srav  {:rsrc rt  :rdst rd  :rshamt rs   }})
-          fcADDU  (->instr {:addu  {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcSUBU  (->instr {:subu  {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcAND   (->instr {:and   {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcOR    (->instr {:or    {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcXOR   (->instr {:xor   {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcNOR   (->instr {:nor   {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcSLT   (->instr {:slt   {:rsrc1 rs :rsrc2 rt :rdst rd     } })
-          fcSLTU  (->instr {:sltu  {:rsrc1 rs :rsrc2 rt :rdst rd     }})
-          fcJR    (->instr {:jr    {:rsrc rs                         }})
-          fcJALR  (->instr {:jalr  {:rsrc rs  :rdst rd               }})
+          fcSLL   (->instr {:sll   {:rsrc rt  :rdst rd  :shamt shamt}})
+          fcSRL   (->instr {:srl   {:rsrc rt  :rdst rd  :shamt shamt}})
+          fcSRA   (->instr {:sra   {:rsrc rt  :rdst rd  :shamt shamt}})
+          fcSLLV  (->instr {:sllv  {:rsrc rt  :rdst rd  :rshamt rs}})
+          fcSRLV  (->instr {:srlv  {:rsrc rt  :rdst rd  :rshamt rs}})
+          fcSRAV  (->instr {:srav  {:rsrc rt  :rdst rd  :rshamt rs}})
+          fcADDU  (->instr {:addu  {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcSUBU  (->instr {:subu  {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcAND   (->instr {:and   {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcOR    (->instr {:or    {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcXOR   (->instr {:xor   {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcNOR   (->instr {:nor   {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcSLT   (->instr {:slt   {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcSLTU  (->instr {:sltu  {:rsrc1 rs :rsrc2 rt :rdst rd}})
+          fcJR    (->instr {:jr    {:rsrc rs}})
+          fcJALR  (->instr {:jalr  {:rsrc rs  :rdst rd}})
           (->instr {:illegal #b0}))
 
         opRT
@@ -321,8 +321,8 @@
        ~@(mapcat (fn [i]
                    [`(cast (bits 32) ~i) (list case-fn i)])
                 (range 32))
-       ~ovf-expr
-       )))
+       ~ovf-expr)))
+       
 
 (defbarrelshifter sra
   "Shift right arithmetic"
@@ -331,8 +331,8 @@
     (let [high-bit (bit-slice x 31 32)]
       (apply bit-cat (concat (repeat i high-bit)
                              [(bit-slice x i 32)]))))
-  (apply bit-cat (repeat 32 (bit-slice x 31 32)))
-  )
+  (apply bit-cat (repeat 32 (bit-slice x 31 32))))
+  
 
 (defbarrelshifter srl
   "Shift right logical"
@@ -348,8 +348,8 @@
   (fn [i]
       (apply bit-cat (concat 
                              [(bit-slice x 0 (- 32 i))]
-                       (repeat i #b0) 
-                       )))
+                       (repeat i #b0)))) 
+                       
   (cast (bits 32) 0))
 
 (defn s>
