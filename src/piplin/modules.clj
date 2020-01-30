@@ -94,8 +94,8 @@
           .getLineNumber
 
           (str "module_" <>)
-          keyword
-          )
+          keyword)
+          
      computation state))
   ([module-name computation state]
    (doseq [[k v] state
@@ -106,7 +106,7 @@
    (fn [& inputs]
      (assert (every? keyword? (take-nth 2 inputs)))
      (binding [*current-module* (conj *current-module*
-                                      module-name)]
+                                      (keyword (gensym (name module-name))))]
        (let [state-renames (plumb/for-map [k (keys state)]
                              k (keyword (name (gensym))))
              reverse-renames (map-invert state-renames)
@@ -128,8 +128,8 @@
                           (plumb/map-keys
                             #(or (reverse-renames %) %)))
              result-fns (plumb/for-map [[k v] result
-                                    :when (and (typeof v)
-                                               (not= (-> v value :op) :array-store))]
+                                        :when (and (typeof v)
+                                                   (not= (-> v value :op) :array-store))]
                                    k v)
              store-fns (plumb/for-map [[k v] result
                                        :when (= (-> v value :op) :array-store)
