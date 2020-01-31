@@ -9,5 +9,6 @@
     {:x ((p/uintm b) 0)}))
 
 (deftest counter-test
-  (let [result (last (p/sim (p/compile-root (counter 8)) 10))]
-    (is (= (get result [:root :x]) ((p/uintm 8) 10)))))
+  (let [mod (counter 8)
+        result (last (p/sim (p/compile-root mod) 10))]
+    (is (= (get result [(:module-name (meta mod)) :x]) ((p/uintm 8) 10)))))

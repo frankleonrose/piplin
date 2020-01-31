@@ -12,7 +12,7 @@
         [x y z w] inst
         roundtrip (->> inst
                        (p/serialize)
-                       (p/deserialize a)) ]
+                       (p/deserialize a))]
     (is (piplin.protocols/pipinst? inst))
     (is ((p/uintm 8) 8) x)
     (is ((p/uintm 8) 7) y)
@@ -69,13 +69,13 @@
   (are [cycle state]
        (p/= (get (last (p/sim (p/compile-root filler)
                               cycle))
-                 [:root :mem])
-            (p/cast (array (p/anontype :boolean) 8)
-                    state))
-       2 [true false false false false false false false]
-       4 [true true true false false false false false]
-       6 [true true true true true false false false]
-       10 [true true true true true true true false])
+                [(:module-name (meta filler)) :mem])
+          (p/cast (array (p/anontype :boolean) 8)
+            state))
+      2 [true false false false false false false false]
+      4 [true true true false false false false false]
+      6 [true true true true true false false false]
+      10 [true true true true true true true false])
   (icarus-test (p/verify filler 50)))
 
 (def double-filler
@@ -93,7 +93,7 @@
   (are [cycle state]
        (p/= (get (last (p/sim (p/compile-root double-filler)
                               cycle))
-                 [:root :mem])
+                 [(:module-name (meta double-filler)) :mem])
             (p/cast (array (p/anontype :boolean) 8)
                     state))
        2 [true false false false false false false false]
@@ -142,7 +142,7 @@
 
 (deftest replay-test
   (let [m (p/compile-root replayer)
-        run-sim #(get (last (p/sim m %)) [:root :o])
+        run-sim #(get (last (p/sim m %)) [(:module-name (meta replayer)) :o])
         ->type #(p/cast (p/maybe states) {:just %})]
     (are [cycle value] (p/= (run-sim cycle) (->type value))
          1 :foo
@@ -178,7 +178,7 @@
 
 (deftest sequencer-test
   (let [m (p/compile-root sequencer)
-        run-sim #(get (last (p/sim m %)) [:root :rfile])]
+        run-sim #(get (last (p/sim m %)) [(:module-name (meta sequencer)) :rfile])]
     (are [cycle value] (p/= (run-sim cycle) value)
          1 [0 0 0]
          2 [1 0 0]
@@ -208,7 +208,7 @@
 (deftest memory-test
   (let [m (p/compile-root memory-file)]
     (are [cycle state]
-         (p/= (get (last (p/sim m cycle)) [:root :mem])
+         (p/= (get (last (p/sim m cycle)) [(:module-name (meta memory-file)) :mem])
               state)
          1 [1 0 0 0]
          3 [1 1 1 0]
@@ -232,7 +232,7 @@
         a #(p/cast (array (p/uintm 3) 2) %)]
     (are [cycle value] (p/= (a value)
                             (get (last (p/sim m cycle))
-                                 [:root :pod]))
+                                 [(:module-name (meta cycling)) :pod]))
          0 [0 2]
          1 [1 3]
          2 [2 4]

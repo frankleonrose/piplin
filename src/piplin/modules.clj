@@ -102,57 +102,57 @@
            :when (not= (kindof v) :array)]
      (assert (computation k)
              (str "Missing register definition for " k)))
-   ^::module
-   (fn [& inputs]
-     (assert (every? keyword? (take-nth 2 inputs)))
-     (binding [*current-module* (conj *current-module*
-                                      (keyword (gensym (name module-name))))]
-       (let [state-renames (plumb/for-map [k (keys state)]
-                             k (keyword (name (gensym))))
-             reverse-renames (map-invert state-renames)
-             renamed-computation
-             (plumb/map-keys #(or (state-renames %) %)
-                             computation)
-             init-map (push-down-map state ::init)
-             register-ports (plumb/for-map [[k v] state]
-                              k (make-port*
-                                  (conj *current-module* k)
-                                  (typeof v)
-                                  :register))
-             port-map (push-down-map register-ports ::port)
-             result (-<>> (graph/run
-                            renamed-computation
-                            (if (seq inputs)
-                              (apply assoc register-ports inputs)
-                              register-ports))
-                          (plumb/map-keys
-                            #(or (reverse-renames %) %)))
-             result-fns (plumb/for-map [[k v] result
-                                        :when (and (typeof v)
-                                                   (not= (-> v value :op) :array-store))]
-                                   k v)
-             store-fns (plumb/for-map [[k v] result
-                                       :when (= (-> v value :op) :array-store)
-                                       :let [{:keys [array index write-enable v]}
-                                             (-> v value :args)]]
-                                      k {::index index
-                                         ::write-enable? write-enable
-                                         ::value v
-                                         ::dest array})
-             fn-map (push-down-map result-fns ::fn)
-             state-elements (->> (merge-with
-                                   merge
-                                   init-map
-                                   fn-map
-                                   store-fns
-                                   port-map)
-                              (plumb/map-keys
-                                #(conj *current-module* %)))]
-         (when (bound? #'*state-elements*)
-           (swap! *state-elements* merge state-elements))
-         ;We actually want to refer to registers, not their inputs,
-         ;in this map
-         (merge result-fns register-ports))))))
+   (let [mname (keyword (gensym (name module-name)))]
+      ^::module ^{:module-name mname}
+      (fn [& inputs]
+        (assert (every? keyword? (take-nth 2 inputs)))
+        (binding [*current-module* (conj *current-module* mname)]
+          (let [state-renames (plumb/for-map [k (keys state)]
+                                k (keyword (name (gensym))))
+                reverse-renames (map-invert state-renames)
+                renamed-computation
+                (plumb/map-keys #(or (state-renames %) %)
+                                computation)
+                init-map (push-down-map state ::init)
+                register-ports (plumb/for-map [[k v] state]
+                                              k (make-port*
+                                                  (conj *current-module* k)
+                                                  (typeof v)
+                                                  :register))
+                port-map (push-down-map register-ports ::port)
+                result (-<>> (graph/run
+                              renamed-computation
+                              (if (seq inputs)
+                                (apply assoc register-ports inputs)
+                                register-ports))
+                             (plumb/map-keys
+                                #(or (reverse-renames %) %)))
+                result-fns (plumb/for-map [[k v] result
+                                            :when (and (typeof v)
+                                                      (not= (-> v value :op) :array-store))]
+                                          k v)
+                store-fns (plumb/for-map [[k v] result
+                                          :when (= (-> v value :op) :array-store)
+                                          :let [{:keys [array index write-enable v]}
+                                                (-> v value :args)]]
+                                         k {::index index
+                                            ::write-enable? write-enable
+                                            ::value v
+                                            ::dest array})
+                fn-map (push-down-map result-fns ::fn)
+                state-elements (->> (merge-with
+                                      merge
+                                      init-map
+                                      fn-map
+                                      store-fns
+                                      port-map)
+                                    (plumb/map-keys
+                                      #(conj *current-module* %)))]
+            (when (bound? #'*state-elements*)
+              (swap! *state-elements* merge state-elements))
+            ;We actually want to refer to registers, not their inputs,
+            ;in this map
+            (merge result-fns register-ports)))))))
 
 (defn store?
   "Returns true if the given map represents a store ast node"
@@ -280,9 +280,9 @@
         (let [reg-state (binding [*sim-state* state]
                           (merge state
                                  (plumb/map-vals #(%) store-fns)
-                                 (plumb/map-vals #(%) reg-fns)  
+                                 (plumb/map-vals #(%) reg-fns)))  
                                  
-                                 )) 
+                                  
               wire-state (binding [*sim-state* reg-state]
                            (merge reg-state
                                   (plumb/map-vals #(%) wire-fns)))]

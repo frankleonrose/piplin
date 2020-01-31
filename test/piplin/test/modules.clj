@@ -7,9 +7,10 @@
   (:use [piplin types math modules]))
 
 (deftest module-counter'
-  (let [m (compile-root (modulize :root {:x (fnk [x] (inc x))}
-                                  {:x ((uintm 8) 0)}))]
-    (are [x] (= x (get (last (sim m x)) [:root :x]))
+  (let [mod (modulize :root {:x (fnk [x] (inc x))}
+                            {:x ((uintm 8) 0)})
+        m (compile-root mod)]
+    (are [x] (= x (get (last (sim m x)) [(:module-name (meta mod)) :x]))
          0 5 10)))
 
 ;This test should see a counter that grows arithmatically
@@ -24,7 +25,7 @@
                {:step ((uintm 8) 0)})
         system (compile-root root)
         do-sim (fn [cycles]
-                 (get (last (sim system cycles)) [:root :output]))]
+                 (get (last (sim system cycles)) [(:module-name (meta root)) :output]))]
     (is (= (do-sim 0) ((uintm 8) 0)))
     (is (= (do-sim 1) ((uintm 8) 0)))
     (is (= (do-sim 2) ((uintm 8) 1)))
@@ -50,8 +51,9 @@
             nil))
 
 (deftest delayer-test
-  (let [m (compile-root delayer-holder)]
-    (are [cycle value] (= (get (last (sim m cycle)) [:root :out]) value)
+  (let [m (compile-root delayer-holder)
+        root-name (:module-name (meta delayer-holder))]
+    (are [cycle value] (= (get (last (sim m cycle)) [root-name :out]) value)
          0 0
          1 0
          2 1

@@ -311,16 +311,17 @@
 
 (compile-root (modulize adder nil) :x ((uintm 8) 3) :y 4)
 (-> (compile-root (modulize :root adder nil) :x ((uintm 8) 3) :y 4)
-  (->verilog {[:root :sum] "sum"})
+  (->verilog {[(:module-name (meta mod)) :sum] "sum"})
   println
   )
 
 (def counter
   {:value (fnk [value] (inc value))})
 
-(-> (compile-root (modulize :root counter {:value ((uintm 8) 0)}))
-  (->verilog {[:root :value] "val"})
-  print)
+(let [mod (modulize :root counter {:value ((uintm 8) 0)})]
+  (-> (compile-root mod)
+    (->verilog {[(:module-name (meta mod)) :value] "val"})
+    print))
 (-> (compile-root (modulize counter {:value ((uintm 8) 0)}))
   (sim 10)
   pprint)
@@ -332,14 +333,15 @@
                                          ((uintm 8) 0)}))]
                  (+ value (:value counter))))})
 
-(-> (compile-root (modulize :root quadratic-counter {:value ((uintm 8) 0)}))
-  (->verilog {[:root :value] "val"})
-  println)
+(let [mod (modulize :root quadratic-counter {:value ((uintm 8) 0)})]
+  (-> (compile-root mod)
+    (->verilog {[(:module-name (meta mod)) :value] "val"})
+    println))
 
 (-> (compile-root
       (modulize quadratic-counter {:value ((uintm 8) 0)}))
   (sim 10)
-  pprint )
+  pprint)
 
 (def adder {:+1 (fnk [input] (inc input))})
 
