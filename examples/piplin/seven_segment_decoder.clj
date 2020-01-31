@@ -179,8 +179,8 @@
       (vert :upper-left) (horiz ::nil) (vert :upper-right) "\n"
       " " (horiz :middle) " \n"
       (vert :lower-left) (horiz ::nil) (vert :lower-right) "\n"
-      " " (horiz :bottom) " \n"
-      )))
+      " " (horiz :bottom) " \n")))
+      
 
 ;TODO: pr-trace should probably put trace arg first, format second
 ;also, pr-trace prints way too many times per cycle, and it conds,
@@ -191,7 +191,7 @@
   (let [deco (decoder bit-width sample-mapping)
         x-value ((uintm bit-width) 0)
         deco-out (-> (compile-root deco :in (serialize x-value))
-                   (get [:decoder :out])
+                   (get [(:module-name (meta deco)) :out])
                    :piplin.modules/fn)]
     (modulize
       {:x (fnk [x] (inc x))
