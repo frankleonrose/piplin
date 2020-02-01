@@ -9,6 +9,11 @@
 *.swp
 *.swo
 
+/.settings
+/target
+.project
+.classpath
+
 docs/uberdoc.html
 
 dump.vcd
@@ -16,6 +21,7 @@ dump.vcd
 my-design
 
 piplin_trace.vcd
+.piplin*
 
 sample.v
 
