@@ -81,7 +81,7 @@
 ;;of their sim fns (:fn) and initial values (:init)
 (def ^:dynamic *state-elements*)
 
-(defn module-name [m] (:module-name (meta m)))
+(defn module-name [m] (::module-name (meta m)))
 
 ;TODO: automatically cast the return values of fnks
 ;that are being assigned to regs
@@ -105,7 +105,7 @@
      (assert (computation k)
              (str "Missing register definition for " k)))
    (let [mname (keyword (gensym (name module-name)))]
-      ^::module ^{:module-name mname}
+      ^::module ^{::module-name mname}
       (fn [& inputs]
         (assert (every? keyword? (take-nth 2 inputs)))
         (binding [*current-module* (conj *current-module* mname)]
