@@ -11,4 +11,4 @@
 (deftest counter-test
   (let [mod (counter 8)
         result (last (p/sim (p/compile-root mod) 10))]
-    (is (= (get result [(:module-name (meta mod)) :x]) ((p/uintm 8) 10)))))
+    (is (= (get result [(p/module-name mod) :x]) ((p/uintm 8) 10)))))

@@ -14,7 +14,7 @@
 (deftest basic-johnson-test
   (let [mod (johnson 4)
         m (p/compile-root mod)]
-    (are [cycles bits] (= (get (last (p/sim m cycles)) [(:module-name (meta mod)) :q]) bits)
+    (are [cycles bits] (= (get (last (p/sim m cycles)) [(p/module-name mod) :q]) bits)
          0 #b0000
          1 #b0001
          2 #b0011

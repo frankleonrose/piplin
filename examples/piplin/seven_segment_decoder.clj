@@ -191,7 +191,7 @@
   (let [deco (decoder bit-width sample-mapping)
         x-value ((uintm bit-width) 0)
         deco-out (-> (compile-root deco :in (serialize x-value))
-                   (get [(:module-name (meta deco)) :out])
+                   (get [(module-name deco) :out])
                    :piplin.modules/fn)]
     (modulize
       {:x (fnk [x] (inc x))

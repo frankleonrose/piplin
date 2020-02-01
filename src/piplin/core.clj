@@ -31,6 +31,7 @@
   piplin.modules/input
   piplin.modules/modulize
   piplin.modules/compile-root
+  piplin.modules/module-name
 
   ;Sim stuff
   piplin.modules/sim

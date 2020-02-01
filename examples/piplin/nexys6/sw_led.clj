@@ -311,7 +311,7 @@
 
 (compile-root (modulize adder nil) :x ((uintm 8) 3) :y 4)
 (-> (compile-root (modulize :root adder nil) :x ((uintm 8) 3) :y 4)
-  (->verilog {[(:module-name (meta mod)) :sum] "sum"})
+  (->verilog {[(module-name mod) :sum] "sum"})
   println
   )
 
@@ -320,7 +320,7 @@
 
 (let [mod (modulize :root counter {:value ((uintm 8) 0)})]
   (-> (compile-root mod)
-    (->verilog {[(:module-name (meta mod)) :value] "val"})
+    (->verilog {[(module-name mod) :value] "val"})
     print))
 (-> (compile-root (modulize counter {:value ((uintm 8) 0)}))
   (sim 10)
@@ -335,7 +335,7 @@
 
 (let [mod (modulize :root quadratic-counter {:value ((uintm 8) 0)})]
   (-> (compile-root mod)
-    (->verilog {[(:module-name (meta mod)) :value] "val"})
+    (->verilog {[(module-name mod) :value] "val"})
     println))
 
 (-> (compile-root

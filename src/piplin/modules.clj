@@ -81,6 +81,8 @@
 ;;of their sim fns (:fn) and initial values (:init)
 (def ^:dynamic *state-elements*)
 
+(defn module-name [m] (:module-name (meta m)))
+
 ;TODO: automatically cast the return values of fnks
 ;that are being assigned to regs
 (defn modulize

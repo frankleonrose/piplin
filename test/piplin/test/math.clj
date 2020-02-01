@@ -122,7 +122,7 @@
                :d (fnk [c] (bit-slice (serialize c) 0 4))}
               {:c (promote (uintm 8) 0)
                :d (promote (bits 4) 0)})]
-    (are [cycle reg val] (= (get (last (sim (compile-root mod) cycle)) [(:module-name (meta mod)) reg])
+    (are [cycle reg val] (= (get (last (sim (compile-root mod) cycle)) [(module-name mod) reg])
                             val)
          10 :c (instance (uintm 8) 10)
          10 :d (instance (bits 4) [1 0 0 1])
@@ -138,7 +138,7 @@
                                (bit-slice (serialize new-c) 0 1)))}
               {:odd false
                :c (promote (uintm 3) 0)})]
-    (are [cycle k v] (= (get (last (sim (compile-root mod) cycle)) [(:module-name (meta mod)) k]) v)
+    (are [cycle k v] (= (get (last (sim (compile-root mod) cycle)) [(module-name mod) k]) v)
          1 :c (promote (uintm 3) 1)
          1 :odd true
          2 :odd false
@@ -155,7 +155,7 @@
               {:c ((uintm 2) 0)
                :triggered false})]
     (are [cycle value] (= (get (last (sim (compile-root mod) cycle))
-                               [(:module-name (meta mod)) :triggered])
+                               [(module-name mod) :triggered])
                           value)
          0 false
          1 false

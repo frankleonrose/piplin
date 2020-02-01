@@ -69,7 +69,7 @@
   (are [cycle state]
        (p/= (get (last (p/sim (p/compile-root filler)
                               cycle))
-                [(:module-name (meta filler)) :mem])
+                [(p/module-name filler) :mem])
           (p/cast (array (p/anontype :boolean) 8)
             state))
       2 [true false false false false false false false]
@@ -93,7 +93,7 @@
   (are [cycle state]
        (p/= (get (last (p/sim (p/compile-root double-filler)
                               cycle))
-                 [(:module-name (meta double-filler)) :mem])
+                 [(p/module-name double-filler) :mem])
             (p/cast (array (p/anontype :boolean) 8)
                     state))
        2 [true false false false false false false false]
@@ -142,7 +142,7 @@
 
 (deftest replay-test
   (let [m (p/compile-root replayer)
-        run-sim #(get (last (p/sim m %)) [(:module-name (meta replayer)) :o])
+        run-sim #(get (last (p/sim m %)) [(p/module-name replayer) :o])
         ->type #(p/cast (p/maybe states) {:just %})]
     (are [cycle value] (p/= (run-sim cycle) (->type value))
          1 :foo
@@ -178,7 +178,7 @@
 
 (deftest sequencer-test
   (let [m (p/compile-root sequencer)
-        run-sim #(get (last (p/sim m %)) [(:module-name (meta sequencer)) :rfile])]
+        run-sim #(get (last (p/sim m %)) [(p/module-name sequencer) :rfile])]
     (are [cycle value] (p/= (run-sim cycle) value)
          1 [0 0 0]
          2 [1 0 0]
@@ -208,7 +208,7 @@
 (deftest memory-test
   (let [m (p/compile-root memory-file)]
     (are [cycle state]
-         (p/= (get (last (p/sim m cycle)) [(:module-name (meta memory-file)) :mem])
+         (p/= (get (last (p/sim m cycle)) [(p/module-name memory-file) :mem])
               state)
          1 [1 0 0 0]
          3 [1 1 1 0]
@@ -232,7 +232,7 @@
         a #(p/cast (array (p/uintm 3) 2) %)]
     (are [cycle value] (p/= (a value)
                             (get (last (p/sim m cycle))
-                                 [(:module-name (meta cycling)) :pod]))
+                                 [(p/module-name cycling) :pod]))
          0 [0 2]
          1 [1 3]
          2 [2 4]

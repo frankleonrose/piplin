@@ -30,7 +30,7 @@
                                         :bar :foo)]
                            (cast b1 {:a a' :b b'})))}
                 {:o (cast b1 {:a 0 :b :foo})})]
-      (are [x y] (= (get (last (sim (compile-root mod) x)) [(:module-name (meta mod)) :o]) y)
+      (are [x y] (= (get (last (sim (compile-root mod) x)) [(module-name mod) :o]) y)
            0 (cast b1 {:a 0 :b :foo})
            1 (cast b1 {:a 1 :b :bar})
            2 (cast b1 {:a 2 :b :foo})))
@@ -43,7 +43,7 @@
                                         :bar :foo)]
                            (cast b1 {:a a' :b b'})))}
                 {:o (cast b1 {:a 0 :b :foo})})]
-      (are [x y] (= (get (last (sim (compile-root mod) x)) [(:module-name (meta mod)) :o]) y)
+      (are [x y] (= (get (last (sim (compile-root mod) x)) [(module-name mod) :o]) y)
            0 (cast b1 {:a 0 :b :foo})
            1 (cast b1 {:a 1 :b :bar})
            2 (cast b1 {:a 2 :b :foo})))))
@@ -127,8 +127,8 @@
                        (:y _ 31)))}
             {:v (cast u {:x ((uintm 5) 22)}) :o ((uintm 5) 0)})]
     (are [cycle v o] (let [r (last (sim (compile-root m) cycle))]
-                       (and (= (get r [(:module-name (meta  m)) :v]) v)
-                            (= (get r [(:module-name (meta  m)) :o]) o)))
+                       (and (= (get r [(module-name m) :v]) v)
+                            (= (get r [(module-name m) :o]) o)))
          0 (u {:x ((uintm 5) 22)}) ((uintm 5) 0)
          1 (u {:y (cast b {:car :b :cdr 3}) }) ((uintm 5) 22))))
 
@@ -159,8 +159,8 @@
             {:v (u {:x ((uintm 5) 0)})
              :o ((uintm 5) 22)})]
     (are [cycle v o] (let [r (last (sim (compile-root m) cycle))]
-                       (and (= (get r [(:module-name (meta m)) :v]) v)
-                            (= (get r [(:module-name (meta m)) :o]) o)))
+                       (and (= (get r [(module-name m) :v]) v)
+                            (= (get r [(module-name m) :o]) o)))
          0 (u {:x ((uintm 5) 0)}) ((uintm 5) 22)
          1 (u {:y (cast b {:car :b :cdr 3}) }) ((uintm 5) 22))))
 
