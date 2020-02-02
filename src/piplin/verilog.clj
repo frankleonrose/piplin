@@ -132,8 +132,8 @@
     (make-union-verilog
       (verilog-repr (enum tag))
       padding
-      (verilog-repr v)
-      )))
+      (verilog-repr v))))
+      
 
 (defmethod verilog-repr :bundle
   [x]
@@ -238,8 +238,8 @@
         offsets (reductions + (conj key-widths 0))
         total (reduce + key-widths)
         pairs (partition 2 1 (map (partial - total) offsets))
-        pairs (map (fn [[x y]] [(dec x) y]) pairs)
-        ]
+        pairs (map (fn [[x y]] [(dec x) y]) pairs)]
+        
     (into {} (map vector (keys schema) pairs))))
 
 (defmethod verilog-of :bundle-assoc
@@ -295,20 +295,20 @@
     [(lookup-expr name-lookup (get array (keyword (str i))))]))
 
 #_(defmethod verilog-of :array-assoc
-  [ast name-lookup]
-  (let [{:keys [array index v]} (get-args ast)
-        {:keys [array-len array-type]} (typeof array)
-        upper-bound (dec (* (bit-width-of array-type) (inc index)))
-        lower-bound (* (bit-width-of array-type) index)
-        array-sym (lookup-expr name-lookup array)
-        arg-sym (lookup-expr name-lookup v)]
-    (str "{"
-         (when-not (= (dec (bit-width-of (typeof ast))) high)
-           (str bund "[" (dec w) ":" (inc high) "], "))
-         v
-         (when-not (= low 0)
-           (str ", " bund "[" (dec low) ":0]"))
-         "}")))
+   [ast name-lookup]
+   (let [{:keys [array index v]} (get-args ast)
+         {:keys [array-len array-type]} (typeof array)
+         upper-bound (dec (* (bit-width-of array-type) (inc index)))
+         lower-bound (* (bit-width-of array-type) index)
+         array-sym (lookup-expr name-lookup array)
+         arg-sym (lookup-expr name-lookup v)]
+     (str "{"
+          (when-not (= (dec (bit-width-of (typeof ast))) high)
+            (str bund "[" (dec w) ":" (inc high) "], "))
+          v
+          (when-not (= low 0)
+            (str ", " bund "[" (dec low) ":0]"))
+          "}")))
 
 (defmethod verilog-of :slice
   [ast name-lookup]
@@ -413,8 +413,8 @@
                             rhs-sints)
                     (assoc name-lookup
                            lhs-sints (name-lookup lhs)
-                           rhs-sints (name-lookup rhs)))
-        )
+                           rhs-sints (name-lookup rhs))))
+        
       :sints
       (let [type (typeof ast)
             width (bit-width-of type)
@@ -514,8 +514,8 @@
                             rhs-sints)
                     (assoc name-lookup
                            lhs-sints (name-lookup lhs)
-                           rhs-sints (name-lookup rhs))))
-      )))
+                           rhs-sints (name-lookup rhs)))))))
+      
 
 (defmethod verilog-of :*
   [ast name-lookup]
@@ -653,7 +653,7 @@
                            prod-sym (dec width)
                            prod-sym (verilog-repr
                                       ((piplin.types.bits/bits width)
-                                         (vec (repeat width 0)))))
+                                       (vec (repeat width 0)))))
 
             negative-leading-sym (gen-verilog-name "neg_leading")
             negative-leading (format-verilog
@@ -685,8 +685,8 @@
             min-val (verilog-repr
                       (piplin.types.sints/min-value type))
             max-val (verilog-repr
-                      (piplin.types.sints/max-value type))
-            ]
+                      (piplin.types.sints/max-value type))]
+            
         [(format "%s ? %s : ((%s & %s & %s) | (~%s & ~%s & %s)) ? %s : ((%s ^ %s) & %s) ? %s : %s"
                  has-zero?-sym zero-sym
                  lhs-pos?-sym rhs-pos?-sym pos-pos-ovf?-sym
@@ -694,11 +694,11 @@
                  max-val
                  lhs-pos?-sym rhs-pos?-sym neg-pos-ovf?-sym
                  min-val
-                 prod-sym
-                 )
+                 prod-sym)
+                 
          [lhs-tmp rhs-tmp has-zero? prod lhs-pos? rhs-pos? lhs-leading-0s lhs-leading-1s rhs-leading-0s rhs-leading-1s
-          pos-pos-ovf? neg-neg-ovf? negative-leading positive-leading neg-pos-ovf?]]
-        ))))
+          pos-pos-ovf? neg-neg-ovf? negative-leading positive-leading neg-pos-ovf?]]))))
+        
 
 ;; TODO: comparson operations don't work for signed values
 (defmethod verilog-of :>
@@ -768,13 +768,13 @@
 
 (defmethod verilog-of :=
   [ast name-lookup]
-   [(let [{:keys [x y]} (get-args ast)]
-     (str (lookup-expr name-lookup x) " == " (lookup-expr name-lookup y)))])
+  [(let [{:keys [x y]} (get-args ast)]
+    (str (lookup-expr name-lookup x) " == " (lookup-expr name-lookup y)))])
 
 (defn verilog-noop-passthrough
   ([ast name-lookup]
-   (verilog-noop-passthrough ast name-lookup :expr)
-   )
+   (verilog-noop-passthrough ast name-lookup :expr))
+   
   ([ast name-lookup passthrough]
    (let [args (get-args ast)]
      (when-not (contains? args passthrough)
@@ -797,7 +797,7 @@
   [ast name-lookup]
   (verilog-noop-passthrough ast name-lookup :bits))
 
-(defn render-single-expr
+(defn render-single-expr_ 
   "Takes an expr and a name table and
   returns an updated name table and a string
   to add to the text of the verilog"
@@ -819,6 +819,13 @@
        (conj (vec structural)
              (format-verilog bit-width name body))])))
 
+(defn render-single-expr [expr name-table]
+  (let [ret (render-single-expr_ expr name-table)
+        [_ vlog] ret] 
+    (prn "Expr:" expr)
+    (prn "Verilog:" vlog)
+    ret))
+
 (defn verilog
   ([expr name-table]
    (verilog expr name-table ""))
@@ -826,6 +833,7 @@
    (let [[name-table body]
          (walk/compile expr render-single-expr
                        name-table [])]
+     (prn "All verilog:" (str text (join body)))
      [name-table (str text (join body))])))
 
 (defn assert-hierarchical
@@ -858,14 +866,14 @@
                                           (verilog-repr val)
                                           cycle)
                      "" #_(->> (map (fn [val index]
-                                 (assert-hierarchical
-                                   indent dut-name
-                                   (str (join \. (map sanitize-str path))
-                                        \[ index \])
-                                   (verilog-repr val)
-                                   cycle))
-                               val (range))
-                       (join "\n"))))))
+                                     (assert-hierarchical
+                                       indent dut-name
+                                       (str (join \. (map sanitize-str path))
+                                            \[ index \])
+                                       (verilog-repr val)
+                                       cycle))
+                                val (range))
+                           (join "\n"))))))
           ""
           cycle-map))
 
@@ -1063,8 +1071,8 @@
          reg-assigns
          memory-stores
          "  end\n"
-         "endmodule\n"
-         )))
+         "endmodule\n")))
+         
 
 (defn verify
   [module cycles]

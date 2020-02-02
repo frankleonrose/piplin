@@ -41,8 +41,8 @@
 
 (deftest fib-counter-test
   (icarus-test (verify
-                 (fib-counter 32) 100)
-                 ))
+                 (fib-counter 32) 100)))
+                 
 
 (def delayer
   (modulize {:out (fnk [in] in)} {:out ((uintm 8) 0)}))

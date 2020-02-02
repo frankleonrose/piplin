@@ -269,8 +269,8 @@
                                      (vals (select-keys compiled-module store-keys)))
         port->mem-name (make-port->mem-name compiled-module)
         reg-inits (plumb/map-vals
-                    ::init
-                    (select-keys compiled-module reg-keys))
+                   ::init
+                   (select-keys compiled-module reg-keys))
         inits (binding [*sim-state* reg-inits]
                 (merge reg-inits
                        (plumb/map-vals #(%) wire-fns)))]

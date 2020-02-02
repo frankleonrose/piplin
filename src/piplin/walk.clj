@@ -5,8 +5,8 @@
 (defn walk
   "Takes an expr, a function to reduce over with a depth
   first postwalk, and an initial value and reduces the expr."
-  [expr f init]
-  )
+  [expr f init])
+  
 
 (defn compile
   "Takes an expr, a function that takes an expr and a map
