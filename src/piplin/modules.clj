@@ -274,21 +274,13 @@
         inits (binding [*sim-state* reg-inits]
                 (merge reg-inits
                        (plumb/map-vals #(%) wire-fns)))]
-    (loop [state inits
-           cycles cycles
-           history [inits]]
-      (if (zero? cycles)
-        history
+    (reductions 
+      (fn [state _]
         (let [reg-state (binding [*sim-state* state]
                           (merge state
                                  (plumb/map-vals #(%) store-fns)
-                                 (plumb/map-vals #(%) reg-fns)))  
-                                 
-                                  
-              wire-state (binding [*sim-state* reg-state]
-                           (merge reg-state
-                                  (plumb/map-vals #(%) wire-fns)))]
-          (recur
-            wire-state
-            (dec cycles)
-            (conj history wire-state)))))))
+                                 (plumb/map-vals #(%) reg-fns)))]  
+          (binding [*sim-state* reg-state]
+            (merge reg-state
+                  (plumb/map-vals #(%) wire-fns)))))
+      inits (range cycles))))
