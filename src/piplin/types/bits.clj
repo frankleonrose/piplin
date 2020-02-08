@@ -168,7 +168,7 @@
   "Takes a bitvec and returns a long"
   [bv]
   (if (> (count bv) 64)
-    (throw (RuntimeException. "bitvec too long"))
+    (throw (RuntimeException. (str "bitvec too long:" bv)))
     (reduce #(bit-or (bit-shift-left %1 1) (long %2))
             0 bv)))
 

@@ -59,6 +59,7 @@
        ", " value "}"))
 
 (defmulti verilog-repr
+  "Generate the Verilog string for an ::immediate value"
   kindof
   :hierarchy types)
 (defmethod verilog-repr :default
@@ -154,6 +155,7 @@
        (throw+ (error expr "not found in" table))))))
 
 (defmulti verilog-of
+  "Generate a vector wrapped Verilog string for an AST expression"
   (fn [ast name-lookup] (if (pipinst? ast)
                           ::immediate
                           (:op (value ast)))))
@@ -822,8 +824,8 @@
 (defn render-single-expr [expr name-table]
   (let [ret (render-single-expr_ expr name-table)
         [_ vlog] ret] 
-    (prn "Expr:" expr)
-    (prn "Verilog:" vlog)
+    ; (prn "Expr:" expr)
+    ; (prn "Verilog:" vlog)
     ret))
 
 (defn verilog
@@ -833,7 +835,7 @@
    (let [[name-table body]
          (walk/compile expr render-single-expr
                        name-table [])]
-     (prn "All verilog:" (str text (join body)))
+    ;  (prn "All verilog:" (str text (join body)))
      [name-table (str text (join body))])))
 
 (defn assert-hierarchical
