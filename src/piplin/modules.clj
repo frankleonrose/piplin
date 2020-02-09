@@ -16,14 +16,12 @@
   [name piplin-type port-type]
   (alter-value (mkast piplin-type :port []
                       #(throw+
-                         (error "no longer using sim-fn")))
+                         (error "make-port* no longer using sim-fn")))
                merge
                {:port name
                 :port-type port-type}))
 
 (declare make-input-map)
-
-(def ^:dynamic *module-path* [])
 
 (defn walk-expr
   [expr visit combine]
@@ -61,9 +59,8 @@
              :port)
         (condp = (:port-type (value expr))
           :register
-          (let [path (conj *module-path* (:port (value expr)))]
-            (fn []
-              (get *sim-state* (:port (value expr)))))
+          (fn []
+              (get *sim-state* (:port (value expr))))
           (throw (ex-info "Invalid :port-type" (value expr))))
         (fn []
           (apply my-sim-fn (map #(%) fn-vec)))))))
@@ -149,8 +146,6 @@
                                     port-map)
                                    (plumb/map-keys
                                     #(conj *current-module* %)))]
-           (clojure.pprint/pprint "State-elements:")
-           (clojure.pprint/pprint state-elements)
            (when (bound? #'*state-elements*)
              (swap! *state-elements* merge state-elements))
             ;We actually want to refer to registers, not their inputs,
