@@ -125,7 +125,8 @@
                      (union-match v
                        (:x _ 22)
                        (:y _ 31)))}
-            {:v (cast u {:x ((uintm 5) 22)}) :o ((uintm 5) 0)})]
+            {:v (cast u {:x ((uintm 5) 22)}) 
+             :o ((uintm 5) 0)})]
     (are [cycle v o] (let [r (last (sim (compile-root m) cycle))]
                        (and (= (get r [(module-name m) :v]) v)
                             (= (get r [(module-name m) :o]) o)))

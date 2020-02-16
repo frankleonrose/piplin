@@ -10,7 +10,7 @@
   (:require [plumbing.graph :as graph]
             [plumbing.core :as plumb]))
 
-(defn make-port*
+(defn- make-port*
   "Takes a keyword name, an owning module token, and
   the port's type and returns the port."
   [name piplin-type port-type]
@@ -23,7 +23,7 @@
 
 (declare make-input-map)
 
-(defn walk-expr
+(defn- walk-expr
   [expr visit combine]
   (let [x (visit expr)]
     (if-let [args (:args (value expr))]
@@ -65,7 +65,7 @@
         (fn []
           (apply my-sim-fn (map #(%) fn-vec)))))))
 
-(defn push-down-map
+(defn- push-down-map
   "Takes a map and a keyword maps all values maps with the
   key as the keyword and the value as the old value."
   [m kw]
@@ -126,33 +126,40 @@
                                           :when (and (typeof v)
                                                      (not= (-> v value :op) :array-store))]
                                          k v)
-               
-               init-map (push-down-map state ::init)
-               fn-map (push-down-map result-fns ::fn)
-               store-fns (plumb/for-map [[k v] result
-                                         :when (= (-> v value :op) :array-store)
-                                         :let [{:keys [array index write-enable v]}
-                                               (-> v value :args)]]
-                                        k {::index index
-                                           ::write-enable? write-enable
-                                           ::value v
-                                           ::dest array})
-               port-map (push-down-map register-ports ::port)
-               state-elements (->> (merge-with
-                                    merge
-                                    init-map
-                                    fn-map
-                                    store-fns
-                                    port-map)
-                                   (plumb/map-keys
-                                    #(conj *current-module* %)))]
+               ;We actually want to refer to registers, not their inputs,
+               ;in this map
+               module-result (merge result-fns register-ports)]
+           
+           ; And when *state-elements* is not bound, that is, when we're not in the process of compiling? 
+           ; Then we don't collect state elements of this module. Does that mean that *state-elements*
+           ; is updated only for the root module?
            (when (bound? #'*state-elements*)
-             (swap! *state-elements* merge state-elements))
-            ;We actually want to refer to registers, not their inputs,
-            ;in this map
-           (merge result-fns register-ports)))))))
+             (let [init-map (push-down-map state ::init)
+                   fn-map (push-down-map result-fns ::fn)
+                   store-fns (plumb/for-map [[k v] result
+                                             :when (= (-> v value :op) :array-store)
+                                             :let [{:keys [array index write-enable v]}
+                                                   (-> v value :args)]]
+                                            k {::index index
+                                               ::write-enable? write-enable
+                                               ::value v
+                                               ::dest array})
+                   port-map (push-down-map register-ports ::port)
+                   state-elements (->> (merge-with
+                                        merge
+                                        init-map
+                                        fn-map
+                                        store-fns
+                                        port-map)
+                                       (plumb/map-keys
+                                        #(conj *current-module* %)))]
+                ; (clojure.pprint/pprint "State-elements:")
+                ; (clojure.pprint/pprint state-elements)
+               (swap! *state-elements* merge state-elements)))
+           
+           module-result))))))
 
-(defn store?
+(defn- store?
   "Returns true if the given map represents a store ast node"
   [value]
   (contains? value ::write-enable?))
@@ -175,7 +182,7 @@
     (with-meta @*state-elements*
                {::compiled true})))
 
-(defn find-exprs
+(defn- find-exprs
   [compiled-module pred]
   (apply concat
          (map #(-> % second
@@ -194,7 +201,7 @@
 (def ^{:arglists (list '[name type])}
   input #(make-port* %1 %2 :input))
 
-(defn make-port->mem-name
+(defn- make-port->mem-name
   "Takes a module and return a map from port to
   the memory's keyword name."
   [compiled-module]
@@ -204,7 +211,7 @@
     (plumb/for-map [[name {port ::port}] mems]
                    port name)))
 
-(defn compute-store-fns
+(defn- compute-store-fns
   "Given a map of memory registers and a list of store ops,
   make a map from memory names to their simulation-store fns."
   [registers stores]
