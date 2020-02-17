@@ -57,10 +57,9 @@
           fn-vec (map #(get arg-map %) my-args)]
       (if (= (:op (value expr))
              :port)
-        (condp = (:port-type (value expr))
-          :register
-          (fn []
-              (get *sim-state* (:port (value expr))))
+        (case (:port-type (value expr))
+          :register (fn []
+                      (get *sim-state* (:port (value expr))))
           (throw (ex-info "Invalid :port-type" (value expr))))
         (fn []
           (apply my-sim-fn (map #(%) fn-vec)))))))
@@ -85,8 +84,8 @@
 (defn modulize
   "Creates a keyword function that when executed against an input map 
     will return a mapping from hierarchical names `[:module123 :output-var]`
-    to maps that represent register ports (with :init, :fn, and :port keys)
-    or functions of existing ports (with just :fn key).
+    to maps that represent AST register ports (with :init, :fn, and :port keys)
+    or simple AST functions of existing ports (with just :fn key).
     As a side effect, execution of the returned function will update 
     *state-elements* to include registers defined in the module."
   ([computation state]
@@ -94,6 +93,9 @@
            "You forgot to include the register map")
    (modulize :module computation state))
   ([module-name computation state]
+   ; Look at all state keys that aren't references to nested state (:arrays).
+   ; Assert that these keys exist in the computation map. That is, assert
+   ; that this module calculates a new value for each of its registers.
    (doseq [[k v] state
            :when (not= (kindof v) :array)]
      (assert (computation k)
@@ -103,25 +105,36 @@
      (fn [& inputs]
        (assert (every? keyword? (take-nth 2 inputs)))
        (binding [*current-module* (conj *current-module* mname)]
-         (let [state-renames (plumb/for-map [k (keys state)]
+         (let [; Rename computation output keys in order to distinguish pre-clock
+               ; (input) state from post-clock (output) state.
+               state-renames (plumb/for-map [k (keys state)]
                                             k (keyword (name (gensym))))
                reverse-renames (map-invert state-renames)
                renamed-computation
                (plumb/map-keys #(or (state-renames %) %)
                                computation)
+               
+               ; Create map of state key to AST port with hierarchical name
                register-ports (plumb/for-map [[k v] state]
                                              k (make-port*
                                                 (conj *current-module* k)
                                                 (typeof v)
                                                 :register))
 
+               ; Generate map of AST functions calculating next state values.
+               ; Un-rename keys at the end to yield post-clock outputs
+               ; in original names.
                result (-<>> (graph/run
                              renamed-computation
+                             ; Graph input is merge of module inputs and pre-calc registers
+                             ; TODO(frankleonrose): Assert on input overwriting register?
                              (if (seq inputs)
                                (apply assoc register-ports inputs)
                                register-ports))
                             (plumb/map-keys
                              #(or (reverse-renames %) %)))
+               ; Filter out operations that have no type or are of type :array-store (RAM?)
+               ; That is, focus on operations that generate output values.
                result-fns (plumb/for-map [[k v] result
                                           :when (and (typeof v)
                                                      (not= (-> v value :op) :array-store))]
@@ -153,8 +166,6 @@
                                         port-map)
                                        (plumb/map-keys
                                         #(conj *current-module* %)))]
-                ; (clojure.pprint/pprint "State-elements:")
-                ; (clojure.pprint/pprint state-elements)
                (swap! *state-elements* merge state-elements)))
            
            module-result))))))
@@ -179,8 +190,7 @@
   (assert (::module (meta module)) "Must pass a module as first argument")
   (binding [*state-elements* (atom {})]
     (apply module inputs)
-    (with-meta @*state-elements*
-               {::compiled true})))
+    (with-meta @*state-elements* {::compiled true})))
 
 (defn- find-exprs
   [compiled-module pred]
