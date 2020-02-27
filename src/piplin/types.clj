@@ -28,13 +28,13 @@
   [& args]
   (CompilerError. (apply print-str args)))
 
-  (comment
+(comment
     ;TODO: running an experiment to see if this
     ;could return "this" and make it easier to have
     ;if and cond support arbitrary objects at sim time
-    (value [this] (throw (IllegalArgumentException.
-                         (str "Cannot get value of "
-                              this)))))
+  (value [this] (throw (IllegalArgumentException.
+                        (str "Cannot get value of "
+                             this)))))
 
 (extend-protocol ITyped
   Object
@@ -152,7 +152,7 @@
          (= (.map ^ASTNode other) map)))
   (hashCode [this]
     (int (mod (+ (.hashCode type) (* 17 (.hashCode map)))
-         Integer/MAX_VALUE)))
+          Integer/MAX_VALUE)))
   (toString [this]
     (print-str "(ASTNode" type map ")"))
 
@@ -239,8 +239,14 @@
       (.write ^java.io.Writer *out* "data: ")
       (clojure.pprint/pprint-newline :linear)
       (clojure.pprint/write-out (.map node))
-      (.write ^java.io.Writer *out* " ")))
-  )
+      (.write ^java.io.Writer *out* " ")
+      (clojure.pprint/pprint-newline :linear))
+    (clojure.pprint/pprint-logical-block
+      (.write ^java.io.Writer *out* "meta: ")
+      (clojure.pprint/pprint-newline :linear)
+      (clojure.pprint/write-out (meta node))
+      (.write ^java.io.Writer *out* " "))))
+  
 
 (defn instance
   "Creates an instance of the type with value val"
@@ -289,7 +295,7 @@
                        \[
                        (join ", "
                              (map pr-str [~@(map (fn [arg]
-                                            `(~(keyword arg) ~'o)) args)]))
+                                                  `(~(keyword arg) ~'o)) args)]))
                        \])))
      (derive-type ~name :piplin-type)))
 
