@@ -4,7 +4,10 @@
   (:require [clojure.core :as clj])
   (:use [piplin.types boolean numbers core-impl binops uintm])
   (:use plumbing.core)
-  (:use [piplin types math modules]))
+  (:use [piplin types math modules])
+  (:use piplin.test.util
+        piplin.verilog
+        plumbing.core))
 
 (deftest module-counter'
   (let [mod (modulize :root {:x (fnk [x] (inc x))}
@@ -70,3 +73,15 @@
                         {:a (fnk [x] x)} {})
                       :x (input "foo" (uintm 8)))
                     10))))
+
+(deftest device-primitive-test
+  (let [_ (clojure.pprint/pprint "Defining io_device")
+        io_device (device-primitive "SB_IO" {} {} #(identity 1))
+        io_1 (io_device {:parameter 123})
+        mod (modulize :root 
+                      {:x (fnk [x] (inc x))
+                       :y (fnk [] (io_1 {:input1 123}))}
+                      {:x ((uintm 8) 0)})
+        m (compile-root mod)]
+    (icarus-test (verify mod 100))))
+

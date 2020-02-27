@@ -168,6 +168,10 @@
   [ast name-lookup]
   [(verilog-repr ast)])
 
+(defmethod verilog-of :primitive
+  [ast name-lookup]
+  [(str "__SB__" ast)])
+
 (defmethod verilog-of :port
   [ast name-lookup]
   [(lookup-expr name-lookup ast)])
@@ -962,7 +966,9 @@
 
 (defn ->verilog
   [compiled-module outputs]
-  (let [;seq of all the input ports used in the module
+  (let [compiled-module (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled-module))
+        outputs (into {} (remove (fn [[k _]] (not (compiled-module k))) outputs))
+        ;seq of all the input ports used in the module
         module-inputs (find-inputs compiled-module)
         ;map from register port object to their verilog names
         port-names (plumb/for-map
@@ -1079,6 +1085,8 @@
 (defn verify
   [module cycles]
   (let [compiled (compile-root module)
+        compiled (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled))
+        compiled (with-meta compiled {:piplin.modules/compiled true})
         ;These are the keys in the `compiled` map
         ;that correspond to scalar outputs
         scalar-output-keys (->> compiled

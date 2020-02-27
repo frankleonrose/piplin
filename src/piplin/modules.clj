@@ -7,11 +7,13 @@
   (:use [clojure.string :only [join replace split]])
   (:use [swiss-arrows.core :only [-<> -<>>]])
   (:use [clojure.pprint :only [pprint]])
+  (:use [piplin.types.bundle])
+  (:use [piplin.types.uintm])
   (:require [plumbing.graph :as graph]
             [plumbing.core :as plumb]))
 
 (defn- make-port*
-  "Takes a keyword name, an owning module token, and
+  "Takes a keyword hierarchical name, a piplin-type, and
   the port's type and returns the port."
   [name piplin-type port-type]
   (alter-value (mkast piplin-type :port []
@@ -74,7 +76,7 @@
 ;;This stores the path of the current module--used for outputing hierarchical data
 (def ^:dynamic *current-module* [])
 ;;This is an atom containing a map of state element paths to a map
-;;of their sim fns (:fn) and initial values (:init)
+;;of their sim fns (::fn) and initial values (::init)
 (def ^:dynamic *state-elements*)
 
 (defn module-name [m] (::module-name (meta m)))
@@ -99,7 +101,7 @@
    (doseq [[k v] state
            :when (not= (kindof v) :array)]
      (assert (computation k)
-             (str "Missing register definition for " k)))
+             (str "Missing computation for register " k)))
    (let [mname (keyword (gensym (name module-name)))]
      ^::module ^{::module-name mname}
      (fn [& inputs]
@@ -170,6 +172,71 @@
            
            module-result))))))
 
+(defn- make-primitive
+  "Takes a keyword hierarchical name and sim function and returns the primitive
+  AST node."
+  [name sim-fn]
+  (alter-value (mkast (bundle {:reg1 (uintm 3) :reg2 (uintm 3)}) :primitive [] sim-fn)
+               merge
+               {}))
+
+
+
+(defn device-primitive
+  "Define a device-specific primitive.
+    For example, the SB_IO on the ICE40.
+
+  (device-primitive \"SB_IO\"
+    { :PACKAGE_PIN        :inout
+      :LATCH_INPUT_VALUE  :input
+      :CLOCK_ENABLE       :input   
+      :INPUT_CLK          :input   
+      :OUTPUT_CLK         :input   
+      :OUTPUT_ENABLE      :input   
+      :D_OUT_0            :input   
+      :D_OUT_1            :input   
+      :D_IN_0             :output  
+      :D_IN_1             :output
+    }
+    {
+      :PIN_TYPE     [type #b000000]
+      :PULLUP       #b0
+      :NEG_TRIGGER  #b0
+      :IO_STANDARD  \"SB_LVCMOS\"
+    }
+    (fn [{:keys []}])
+  )
+  
+  Once defined, like
+  (def io_primitive (device-primitive ...))
+  use primitive within modules like
+  any function:
+  (modulize
+    (let [io_1 (io_primitive parameters)]
+      {:primitive-out (:output (io_1 :input 123))
+      }))
+  "
+  [name parameter-defs wire-defs sim-fn]
+  (fn [& parameters]
+    (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters])
+    (plumb/fnk [input1] ; Declare inputs
+               (clojure.pprint/pprint ["Fnk taking input and binding primitive" input1])
+               (let [instance-name (keyword (gensym (str name "_")))]
+                 (binding [*current-module* (conj *current-module* instance-name)]
+                   (let [instance (make-primitive instance-name sim-fn)
+                         _ (clojure.pprint/pprint ["Type of:" (typeof instance)])
+                         state-elements {*current-module* {::fn instance}}
+                         result {}]
+                     (when (bound? #'*state-elements*)
+                       (clojure.pprint/pprint ["Primitive state-elements:" instance-name state-elements])
+                       (swap! *state-elements* merge state-elements))
+                     result))))))
+
+(defn- primitive?
+  "Returns true if the given map represents a primitive ast node"
+  [value]
+  (= :primitive (::op value)))
+
 (defn- store?
   "Returns true if the given map represents a store ast node"
   [value]
@@ -183,7 +250,7 @@
 (defn wire?
   "Returns true if the given map represents a wire ast node"
   [value]
-  (not (or (store? value) (register? value))))
+  (not (or (store? value) (register? value) (primitive? value))))
 
 (defn compile-root
   [module & inputs]
@@ -198,7 +265,7 @@
          (map #(-> % second
                  ::fn
                  (walk-expr (fn [expr]
-                              (if (pred expr)
+                              (if (and expr (pred expr))
                                 [expr]))
                             concat))
               compiled-module)))
@@ -216,8 +283,9 @@
   the memory's keyword name."
   [compiled-module]
   (let [mems (->> compiled-module
-               (filter #(-> % second ::init kindof
-                          (= :array))))]
+                  (filter #(-> % second ::init))
+                  (filter #(-> % second ::init kindof
+                               (= :array))))]
     (plumb/for-map [[name {port ::port}] mems]
                    port name)))
 
