@@ -233,17 +233,19 @@
   ; For wire parameters, create a union of all the outputs 
   ;   as the output of the function.
   ; Make function expect all the inputs as inputs
-  [name parameter-defs wire-defs sim-fn]
-  (let [dsdfx 1]
+  [primitive-name parameter-defs wire-defs sim-fn]
+  (let [inputs (map first (filter (comp #{:input} second) wire-defs))
+        input-symbols (map symbol inputs)
+        input-map (into {} (map #(identity [% (name %)]) inputs))]
     `(fn [parameters#] ; TODO handle parameters - add to primitive Verilog output
       (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
-      (plumb/fnk [~'input1] ; TODO Declare inputs - add to primitive Verilog output
-        (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~'input1])
-        (let [instance-name# (keyword (gensym (str ~name "_")))
+      (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output
+        (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~@input-symbols])
+        (let [instance-name# (keyword (gensym (str ~primitive-name "_")))
               output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; (uintm 1) is 1 wire output type
                                                 (filter (comp #{:output :inout} second) ~wire-defs))))]
           (binding [*current-module* (conj *current-module* instance-name#)]
-            (let [instance# (make-primitive ~name instance-name# parameters# {:input1 ~'input1} output-type# ~sim-fn)
+            (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map output-type# ~sim-fn)
                   _# (clojure.pprint/pprint ["Type of:" (typeof instance#)])
                   state-elements# {*current-module* {::fn instance#}}
                   result# {}] ; TODO What is the result? The Bundle of wires such that consumers can connect (?)
