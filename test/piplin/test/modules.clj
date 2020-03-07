@@ -76,12 +76,18 @@
 
 (deftest device-primitive-test
   (let [_ (clojure.pprint/pprint "Defining io_device")
-        io_device (device-primitive "SB_IO" {} {} #(identity 1))
-        io_1 (io_device {:parameter 123})
+        io_device (device-primitive "SB_IO" {} {:out-value :output} #(identity 1))
+        _ (clojure.pprint/pprint "Defining io_1")
+        io_1 (io_device {:PIN_TYPE "SB_IO_TYPE_SIMPLE_INPUT" :PULL_UP 123})
+        _ (clojure.pprint/pprint "Defining mod")
         mod (modulize :root 
                       {:x (fnk [x] (inc x))
                        :y (fnk [] (io_1 {:input1 123}))}
                       {:x ((uintm 8) 0)})
-        m (compile-root mod)]
-    (icarus-test (verify mod 100))))
+        _ (clojure.pprint/pprint "Compiling mod")
+        compiled (compile-root mod) 
+        _ (clojure.pprint/pprint ["Compiled: " compiled])
+        verilog (->verilog compiled {})
+        _ (prn ["Verilog: " verilog])]
+      (is (= verilog ""))))
 

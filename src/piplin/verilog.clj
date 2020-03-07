@@ -170,7 +170,7 @@
 
 (defmethod verilog-of :primitive
   [ast name-lookup]
-  [(str "__SB__" ast)])
+  [(:verilog ast)])
 
 (defmethod verilog-of :port
   [ast name-lookup]
@@ -966,7 +966,13 @@
 
 (defn ->verilog
   [compiled-module outputs]
-  (let [compiled-module (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled-module))
+  (let [primitives (into {} (remove (comp (partial not= :primitive) :op value :piplin.modules/fn second) compiled-module))
+        [_ primitive-instances] (reduce (fn [[name-table text] [_ expr]] 
+                                          [name-table (str text (:piplin.modules/primitive (value (:piplin.modules/fn expr))))])
+                                  [{} ""] primitives)
+                                          ; (:piplin.modules/verilog (meta (:piplin.modules/fn expr) name-table text))])
+        ; primitive-instances "primitives"
+        compiled-module (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled-module))
         outputs (into {} (remove (fn [[k _]] (not (compiled-module k))) outputs))
         ;seq of all the input ports used in the module
         module-inputs (find-inputs compiled-module)
@@ -1064,25 +1070,27 @@
                         (map #(str "  " % ",\n"))
                         join)]
     (str "module piplin_module(\n"
-         "  clock,\n"
-         port-names
-         ");\n"
-         "  input wire clock;\n"
-         "  //Input and output declarations\n"
-         input-decls
-         output-decls
-         "\n  //Registers\n"
-         regs-inits
-         "\n  //Main code\n"
-         code
-         "\n  //Assignments to outputs\n"
-         output-assigns
-         "\n"
-         "  always @(posedge clock) begin\n"
-         reg-assigns
-         memory-stores
-         "  end\n"
-         "endmodule\n")))
+      "  input clock,\n"
+      port-names
+      ");\n"
+      "  input wire clock;\n"
+      "  //Input and output declarations\n"
+      input-decls
+      output-decls
+      "\n  //Registers\n"
+      regs-inits
+      "\n  // Primitives\n"
+      primitive-instances
+      "\n  //Main code\n"
+      code
+      "\n  //Assignments to outputs\n"
+      output-assigns
+      "\n"
+      "  always @(posedge clock) begin\n"
+      reg-assigns
+      memory-stores
+      "  end\n"
+      "endmodule\n")))
          
 
 (defn verify
