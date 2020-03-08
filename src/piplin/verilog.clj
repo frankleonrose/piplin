@@ -968,7 +968,7 @@
   [compiled-module outputs]
   (let [primitives (into {} (remove (comp (partial not= :primitive) :op value :piplin.modules/fn second) compiled-module))
         [_ primitive-instances] (reduce (fn [[name-table text] [_ expr]] 
-                                          [name-table (str text (:piplin.modules/primitive (value (:piplin.modules/fn expr))))])
+                                          [name-table (str text (:piplin.primitives/primitive (value (:piplin.modules/fn expr))))])
                                   [{} ""] primitives)
                                           ; (:piplin.modules/verilog (meta (:piplin.modules/fn expr) name-table text))])
         ; primitive-instances "primitives"
