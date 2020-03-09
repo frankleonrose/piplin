@@ -9,6 +9,7 @@
   (:use [clojure.pprint :only [pprint]])
   (:use [piplin.types.bundle])
   (:use [piplin.types.uintm])
+  (:use [piplin.verilog])
   (:require [plumbing.graph :as graph]
             [plumbing.core :as plumb]))
 
@@ -56,15 +57,20 @@
 ;   (pipinst? [this] true))
 
 (defn primitive-verilog [primitive-name instance-name parameters inputs]
-  (str
-   primitive-name
-   " #( "
-   (join ",\n" (map (fn [[k v]] (str "." (name k) "(" v ")")) parameters))
-   " ) "
-   (name instance-name)
-   " ( "
-   (join ",\n" (map (fn [[k v]] (str "." (name k) "(" v ")")) inputs))
-   " );"))
+  (fn [name-table]
+    (clojure.pprint/pprint ["verilog inputs" (:D_OUT_0 inputs)])
+    (clojure.pprint/pprint ["verilog lookup" (piplin.verilog/lookup-expr name-table (:D_OUT_0 inputs))])
+    (str
+     primitive-name
+     " #( "
+     ; TODO if type is set, check valid and stringize value. 
+     ; If type is bits, lookup expression to get constant
+     (join ",\n" (map (fn [[k v]] (str "." (name k) "(" v ")")) parameters)) 
+     " ) "
+     (name instance-name)
+     " ( "
+     (join ",\n" (map (fn [[k v]] (str "." (name k) "(" (piplin.verilog/lookup-expr name-table v) ")")) inputs))
+     " );")))
 
 (defn make-primitive
   "Takes a keyword hierarchical name and sim function and returns the primitive
@@ -98,7 +104,8 @@
       :NEG_TRIGGER  #b0
       :IO_STANDARD  \"SB_LVCMOS\"
     }
-    { :PACKAGE_PIN        :inout
+    {
+      :PACKAGE_PIN        :inout
       :LATCH_INPUT_VALUE  :input
       :CLOCK_ENABLE       :input   
       :INPUT_CLK          :input   
@@ -129,7 +136,7 @@
   [primitive-name parameter-defs wire-defs sim-fn]
   (let [inputs (map first (filter (comp #{:input} second) wire-defs))
         input-symbols (map symbol inputs)
-        input-map (into {} (map #(identity [% (name %)]) inputs))]
+        input-map (into {} (map #(identity [% (symbol %)]) inputs))]
     `(fn [parameters#] ; TODO handle parameters - add to primitive Verilog output
        (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
        (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output

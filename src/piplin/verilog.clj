@@ -967,11 +967,7 @@
 (defn ->verilog
   [compiled-module outputs]
   (let [primitives (into {} (remove (comp (partial not= :primitive) :op value :piplin.modules/fn second) compiled-module))
-        [_ primitive-instances] (reduce (fn [[name-table text] [_ expr]] 
-                                          [name-table (str text (:piplin.primitives/primitive (value (:piplin.modules/fn expr))))])
-                                  [{} ""] primitives)
-                                          ; (:piplin.modules/verilog (meta (:piplin.modules/fn expr) name-table text))])
-        ; primitive-instances "primitives"
+        ; NOTE: Redefining compiled-module without primitives
         compiled-module (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled-module))
         outputs (into {} (remove (fn [[k _]] (not (compiled-module k))) outputs))
         ;seq of all the input ports used in the module
@@ -1022,6 +1018,13 @@
                                         :piplin.modules/init))
                           (remove (comp (partial = :primitive) :op value :piplin.modules/fn))))
 
+        [_ primitive-instances] (reduce (fn [[name-table vcode] [_ expr]]
+                                          (clojure.pprint/pprint ["expr:" (:piplin.modules/fn expr)])
+                                          (clojure.pprint/pprint ["expr value:" (value (:piplin.modules/fn expr))])
+                                          (let [gen-primitive (:piplin.primitives/primitive (value (:piplin.modules/fn expr)))]
+                                            [name-table (str vcode (gen-primitive name-table))]))
+                                        [name-table ""] primitives)
+        
         ;string containing the memory stores
         memory-stores (memory-stores
                        name-table
