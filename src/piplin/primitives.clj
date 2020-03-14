@@ -60,6 +60,7 @@
   (when (and (some? v) (not= ::unconnected v))
     (let [parameter-value
           (cond
+            (= ::clock v) "clock"
             (keyword? v) (str \" (name v) \")
             :else (piplin.verilog/lookup-expr name-table v))]
       (str "." (name k) "(" parameter-value ")"))))
@@ -69,16 +70,14 @@
     (clojure.pprint/pprint ["verilog inputs" (:D_OUT_0 inputs)])
     (clojure.pprint/pprint ["verilog lookup" (piplin.verilog/lookup-expr name-table (:D_OUT_0 inputs))])
     (str
-     primitive-name
-     " #( "
+     "  " primitive-name " #(\n    "
      ; TODO if type is set, check valid and stringize value. 
      ; If type is bits, lookup expression to get constant
-     (join ",\n" (filter some? (map (partial primitive-parameter name-table) parameters)))
-     " ) "
-     (name instance-name)
-     " ( "
-     (join ",\n" (filter some? (map (partial primitive-parameter name-table) inputs)))
-     " );")))
+     (join ",\n    " (filter some? (map (partial primitive-parameter name-table) parameters)))
+     ")\n"
+     "    " (name instance-name) " (\n    "
+     (join ",\n    " (filter some? (map (partial primitive-parameter name-table) inputs)))
+     ");\n")))
 
 (defn make-primitive
   "Takes a keyword hierarchical name and sim function and returns the primitive

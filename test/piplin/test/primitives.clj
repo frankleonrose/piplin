@@ -40,14 +40,18 @@
         _ (clojure.pprint/pprint "Defining mod")
         mod (modulize :root
                       {:x (fnk [x] (inc x))
-                       :y (fnk [x] (io-1 {:D_OUT_0 x :CLOCK_ENABLE :piplin.primitives/unconnected}))}
+                       :y (fnk [x] (io-1 {
+                                          :D_OUT_0 x 
+                                          :CLOCK_ENABLE :piplin.primitives/unconnected
+                                          :INPUT_CLK :piplin.primitives/clock}))}
                       {:x ((uintm 8) 0)})
         _ (clojure.pprint/pprint "Compiling mod")
         compiled (compile-root mod)
         _ (clojure.pprint/pprint ["Compiled: " compiled])
         verilog (->verilog compiled {})
-        _ (prn ["Verilog: " verilog])]
-      (is (= verilog ""))))
+        _ (prn ["Generated Verilog: " verilog])
+        _ (prn ["Target Verilog: " (slurp "test/resources/primitives.v")])]
+      (is (= verilog (slurp "test/resources/primitives.v")))))
           ; (icarus-test (verify mod 100))))
           ; (are [x] (= x (get (last (sim m x)) [(module-name mod) :x]))
           ;   0 5 10)))
@@ -57,4 +61,3 @@
   ;       _ (clojure.pprint/pprint (compile-root (counter 7)))
   ;       _ (clojure.pprint/pprint (compile-root (nested-counter 11)))]
     ; (icarus-test (verify (counter 8) 100))))
-
