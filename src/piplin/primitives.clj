@@ -56,6 +56,14 @@
 ;   (value [this] this)
 ;   (pipinst? [this] true))
 
+(defn primitive-parameter [name-table [k v]]
+  (when (and (some? v) (not= ::unconnected v))
+    (let [parameter-value
+          (cond
+            (keyword? v) (str \" (name v) \")
+            :else (piplin.verilog/lookup-expr name-table v))]
+      (str "." (name k) "(" parameter-value ")"))))
+
 (defn primitive-verilog [primitive-name instance-name parameters inputs]
   (fn [name-table]
     (clojure.pprint/pprint ["verilog inputs" (:D_OUT_0 inputs)])
@@ -65,11 +73,11 @@
      " #( "
      ; TODO if type is set, check valid and stringize value. 
      ; If type is bits, lookup expression to get constant
-     (join ",\n" (map (fn [[k v]] (str "." (name k) "(" v ")")) parameters)) 
+     (join ",\n" (filter some? (map (partial primitive-parameter name-table) parameters)))
      " ) "
      (name instance-name)
      " ( "
-     (join ",\n" (map (fn [[k v]] (str "." (name k) "(" (piplin.verilog/lookup-expr name-table v) ")")) inputs))
+     (join ",\n" (filter some? (map (partial primitive-parameter name-table) inputs)))
      " );")))
 
 (defn make-primitive

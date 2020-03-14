@@ -23,7 +23,7 @@
                             {
                               ; :PACKAGE_PIN        :inout
                               ; :LATCH_INPUT_VALUE  :input
-                              ; :CLOCK_ENABLE       :input
+                              :CLOCK_ENABLE       :input
                               ; :INPUT_CLK          :input
                               ; :OUTPUT_CLK         :input
                               ; :OUTPUT_ENABLE      :input
@@ -40,7 +40,7 @@
         _ (clojure.pprint/pprint "Defining mod")
         mod (modulize :root
                       {:x (fnk [x] (inc x))
-                       :y (fnk [x] (io-1 {:D_OUT_0 x}))}
+                       :y (fnk [x] (io-1 {:D_OUT_0 x :CLOCK_ENABLE :piplin.primitives/unconnected}))}
                       {:x ((uintm 8) 0)})
         _ (clojure.pprint/pprint "Compiling mod")
         compiled (compile-root mod)
