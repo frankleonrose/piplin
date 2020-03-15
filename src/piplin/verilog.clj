@@ -1036,7 +1036,7 @@
                            :let [width (-> port
                                            typeof
                                            piplin.types.bits/bit-width-of)]]
-                       (format "  input wire %s %s;\n"
+                       (format ",\n  input %s %s"
                                (array-width-decl width) name)))
         ;string containing the output wire decls
         output-decls
@@ -1045,7 +1045,7 @@
                  (let [{function :piplin.modules/fn 
                         port :piplin.modules/port} (value (compiled-module path))]
                    (format
-                    "  output wire %s %s;\n"
+                    ",\n  output %s %s"
                     (-> function
                         typeof
                         bit-width-of
@@ -1073,13 +1073,10 @@
                         (map #(str "  " % ",\n"))
                         join)]
     (str "module piplin_module(\n"
-      "  input clock,\n"
-      port-names
-      ");\n"
-      "  input wire clock;\n"
-      "  //Input and output declarations\n"
+      "  input clock"
       input-decls
       output-decls
+      ");\n"
       "\n  //Registers\n"
       regs-inits
       "\n  // Primitives\n"

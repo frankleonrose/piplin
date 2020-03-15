@@ -29,6 +29,17 @@
   (icarus-test (verify
                  (multicounter 1 2 3) 100)))
 
+(defn bundle-counter []
+  (let [b (bundle {:x (bits 1) :y (bits 1)})]
+    (modulize
+      {:b* (fnk [] (cast b {:x #b1
+                            :y #b0}))}
+      {})))
+      
+(deftest bundle-counter-test
+  (icarus-test (verify
+                (bundle-counter) 100)))
+
 (defn fib-counter [x]
   (modulize
     {:sub (fnk []
