@@ -29,33 +29,6 @@
 ;   "
 ;   [name import-name])
 
-; (defrecord DevicePrimitive [name])
-; (derive-type DevicePrimitive :piplin-type)
-
-; (defn- make-primitive
-;   "Takes a keyword hierarchical name and sim function and returns the primitive
-;   AST node."
-;   [name sim-fn]
-;   (alter-value (mkast (merge (DevicePrimitive. name) {:kind :primitive}) :primitive [] sim-fn)
-;                merge
-;                {}))
-
-; (defmethod piplin.types/containsKey-multi
-;   :primitive
-;   ([map key]
-;    (contains? (value map) key)))
-
-; (defmethod piplin.types/valAt-multi
-;   :primitive
-;   ([map key]
-;    (get (value map) key)))
-
-; (extend-protocol ITyped
-;   DevicePrimitive
-;   (typeof [this] (anontype :primitive))
-;   (value [this] this)
-;   (pipinst? [this] true))
-
 (defn primitive-parameter [name-table [k v]]
   (when (and (some? v) (not= ::unconnected v))
     (let [parameter-value
