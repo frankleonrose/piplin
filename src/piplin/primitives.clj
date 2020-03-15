@@ -29,14 +29,21 @@
 ;   "
 ;   [name import-name])
 
-(defn primitive-parameter [name-table [k v]]
+(defn primitive-parameter [[k v]]
   (when (and (some? v) (not= ::unconnected v))
     (let [parameter-value
           (cond
-            (= ::clock v) "clock"
             (keyword? v) (str \" (name v) \")
-            :else (piplin.verilog/lookup-expr name-table v))]
+            :else (piplin.verilog/verilog-repr v))]
       (str "." (name k) "(" parameter-value ")"))))
+
+(defn primitive-input [name-table [k v]]
+  (when (and (some? v) (not= ::unconnected v))
+    (let [input-value
+          (cond
+            (= ::clock v) "clock"
+            :else (piplin.verilog/lookup-expr name-table v))]
+      (str "." (name k) "(" input-value ")"))))
 
 (defn primitive-verilog [primitive-name instance-name parameters inputs]
   (fn [name-table]
@@ -46,10 +53,10 @@
      "  " primitive-name " #(\n    "
      ; TODO if type is set, check valid and stringize value. 
      ; If type is bits, lookup expression to get constant
-     (join ",\n    " (filter some? (map (partial primitive-parameter name-table) parameters)))
+     (join ",\n    " (filter some? (map primitive-parameter parameters)))
      ")\n"
      "    " (name instance-name) " (\n    "
-     (join ",\n    " (filter some? (map (partial primitive-parameter name-table) inputs)))
+     (join ",\n    " (filter some? (map (partial primitive-input name-table) inputs)))
      ");\n")))
 
 (defn make-primitive
@@ -58,6 +65,10 @@
   [primitive-name instance-name parameters inputs output-type sim-fn]
   ; The bundle in the following statement should represent the output values of the primitive?
   (clojure.pprint/pprint parameters)
+  
+  (when-not (every? #(or (keyword? (second %)) (pipinst? (second %))) parameters)
+    (throw+ (str "Some parameters of " instance-name " are not constants.")))
+
   (alter-value (mkast output-type :primitive [] sim-fn)
                merge
                {::primitive (primitive-verilog primitive-name instance-name parameters inputs)}))
