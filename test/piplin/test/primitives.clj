@@ -49,6 +49,9 @@
         compiled (compile-root mod)
         _ (clojure.pprint/pprint ["Compiled: " compiled])
         verilog (->verilog compiled {})
+        verilog (clojure.string/replace verilog #"x\d+" "x1")
+        verilog (clojure.string/replace verilog #"G__\d+" "G__2")
+        verilog (clojure.string/replace verilog #"SB_IO_\d+" "SB_IO_3")
         _ (prn ["Generated Verilog: " verilog])
         _ (prn ["Target Verilog: " (slurp "test/resources/primitives.v")])]
       (is (= verilog (slurp "test/resources/primitives.v")))))
