@@ -129,6 +129,13 @@
         input-symbols (map symbol inputs)
         input-map (into {} (map #(identity [% (symbol %)]) inputs))]
     `(fn [parameters#] ; TODO handle parameters - add to primitive Verilog output
+      (let [parameter-check# (fn [[p# pv#]]
+                              (cond
+                                (and (set? (p# ~parameter-defs)) (not ((p# ~parameter-defs) pv#)))
+                                (str "Parameter " p# " has value " pv# ". Value must be one of " (p# ~parameter-defs))
+                                :else nil))]
+        (if (some parameter-check# parameters#)
+         (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
        (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
        (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output
                   (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~@input-symbols])
@@ -143,7 +150,7 @@
                         (when (bound? #'piplin.modules/*state-elements*)
                           (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])
                           (swap! piplin.modules/*state-elements* merge state-elements#))
-                        result#)))))))
+                        result#))))))))
 
 ; (device-primitive 
 ;   "SB_IO"

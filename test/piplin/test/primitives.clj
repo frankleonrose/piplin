@@ -8,7 +8,8 @@
   (:use piplin.test.util
         piplin.types.bits
         piplin.verilog
-        plumbing.core))
+        plumbing.core)
+  (:import clojure.lang.ExceptionInfo))
 
 (deftest device-primitive-test
   (let [_ (clojure.pprint/pprint "Defining io-device")
@@ -64,3 +65,11 @@
   ;       _ (clojure.pprint/pprint (compile-root (counter 7)))
   ;       _ (clojure.pprint/pprint (compile-root (nested-counter 11)))]
     ; (icarus-test (verify (counter 8) 100))))
+
+(deftest parameter-check
+  (let [test-device (device-primitive "TEST"
+                                    {:STRING_PARAMETER #{:X :Y :Z}}
+                                    {:in :input}
+                                    #(identity 1))]
+    (is (thrown? ExceptionInfo
+          (test-device {:STRING_PARAMETER :A})))))
