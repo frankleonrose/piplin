@@ -170,7 +170,8 @@
 
 (defmethod verilog-of :primitive
   [ast name-lookup]
-  [(:verilog ast)])
+  ["Primitive Output"])
+  ;; [(verilog-repr ast)])
 
 (defmethod verilog-of :port
   [ast name-lookup]
@@ -928,7 +929,7 @@
               (port-names port)
                 ;must be using an immediate by contract
               (verilog-repr init))))
-         module-regs)))
+         (remove #(= :primitive (-> % :piplin.modules/port value :port-type)) module-regs))))
 
 (defn register-assignments
   "This takes a name-table and a seq of register configurations
@@ -967,8 +968,6 @@
 (defn ->verilog
   [compiled-module outputs]
   (let [primitives (into {} (remove (comp (partial not= :primitive) :op value :piplin.modules/fn second) compiled-module))
-        ; NOTE: Redefining compiled-module without primitives
-        compiled-module (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled-module))
         outputs (into {} (remove (fn [[k _]] (not (compiled-module k))) outputs))
         ;seq of all the input ports used in the module
         module-inputs (find-inputs compiled-module)
@@ -1007,8 +1006,7 @@
              ;could insert a filter here to allow DCE to work
              (reduce (fn [[name-table text] expr]
                        (verilog expr name-table text))
-                     [(merge port-names
-                             input-names) ""]))
+                     [(merge port-names input-names) ""]))
         ;string containing the register assigns
         reg-assigns (register-assignments
                      name-table
@@ -1018,9 +1016,15 @@
                                         :piplin.modules/init))
                           (remove (comp (partial = :primitive) :op value :piplin.modules/fn))))
 
+        [_ primitive-outputs] (reduce (fn [[name-table vcode] [path expr]]
+                                        (let [outputs (:piplin.primitives/outputs (value (:piplin.modules/fn expr)))]
+                                          (reduce (fn [[name-table vcode] output]
+                                                    (let [name (join "_" (map name (conj path output)))]
+                                                      [(assoc name-table output name) (str vcode "\n  wire " name ";")]))
+                                              [name-table vcode] outputs)))
+                                      [name-table ""] primitives)
+        
         [_ primitive-instances] (reduce (fn [[name-table vcode] [_ expr]]
-                                          (clojure.pprint/pprint ["expr:" (:piplin.modules/fn expr)])
-                                          (clojure.pprint/pprint ["expr value:" (value (:piplin.modules/fn expr))])
                                           (let [gen-primitive (:piplin.primitives/primitive (value (:piplin.modules/fn expr)))]
                                             [name-table (str vcode (gen-primitive name-table))]))
                                         [name-table ""] primitives)
@@ -1073,24 +1077,26 @@
                         (map #(str "  " % ",\n"))
                         join)]
     (str "module piplin_module(\n"
-      "  input clock"
-      input-decls
-      output-decls
-      ");\n"
-      "\n  //Registers\n"
-      regs-inits
-      "\n  // Primitives\n"
-      primitive-instances
-      "\n  //Main code\n"
-      code
-      "\n  //Assignments to outputs\n"
-      output-assigns
-      "\n"
-      "  always @(posedge clock) begin\n"
-      reg-assigns
-      memory-stores
-      "  end\n"
-      "endmodule\n")))
+         "  input clock"
+         input-decls
+         output-decls
+         ");\n"
+         "\n  //Registers\n"
+         regs-inits
+         "\n  // Primitive output wires\n"
+         primitive-outputs
+         "\n  // Primitives\n"
+         primitive-instances
+         "\n  //Main code\n"
+         code
+         "\n  //Assignments to outputs\n"
+         output-assigns
+         "\n"
+         "  always @(posedge clock) begin\n"
+         reg-assigns
+         memory-stores
+         "  end\n"
+         "endmodule\n")))
          
 
 (defn verify

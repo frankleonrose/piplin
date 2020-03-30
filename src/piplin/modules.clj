@@ -12,7 +12,7 @@
   (:require [plumbing.graph :as graph]
             [plumbing.core :as plumb]))
 
-(defn- make-port*
+(defn make-port*
   "Takes a keyword hierarchical name, a piplin-type, and
   the port's type and returns the port."
   [name piplin-type port-type]
@@ -171,7 +171,7 @@
            
            module-result))))))
 
-(defn- primitive?
+(defn primitive?
   "Returns true if the given map represents a primitive ast node"
   [value]
   (= :piplin.primitives/primitive (::op value)))
@@ -261,7 +261,7 @@
    to compilers, as they're the 3 kinds of runnable code."
   [compiled-module]
   (let [reg-keys (->> compiled-module
-                      (filter (comp register? second))
+                      (filter (comp #(and (register? %) (not= :primitive ((comp :port-type value ::port) %))) second))
                       (map first))
         store-keys (->> compiled-module
                         (filter (comp store? second))
@@ -274,6 +274,12 @@
      :wire-keys wire-keys}))
 
 (defn sim
+  "Simulate a module for a given number of cycles.
+  Critical elements extracted from compiled module:
+  - Reg init values - ::init key for registers
+  - Wire fns - ::fn for each wire key, fn that maps reg state to val
+  - Reg fns - ::fn for registers, fn that maps wire state to val
+  - Store fns - "
   [compiled-module cycles]
   (assert (::compiled (meta compiled-module))
           "Module must be compiled")

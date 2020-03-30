@@ -14,37 +14,39 @@
 (deftest device-primitive-test
   (let [_ (clojure.pprint/pprint "Defining io-device")
         io-device (device-primitive "SB_IO" 
-                            {
-                             :PIN_TYPE (bits 6)
-                             :PULLUP (bits 1)
-                             :NEG_TRIGGER (bits 1)
-                             :IO_STANDARD #{:SB_LVCMOS :SB_SSTL2_CLASS_2 :SB_SSTL2_CLASS_1
-                                            :SB_SSTL18_FULL :SB_SSTL18_HALF :SB_MDDR10
-                                            :SB_MDDR8 :SB_MDDR4 :SB_MDDR2}}
-                            {
-                              ; :PACKAGE_PIN        :inout
-                              ; :LATCH_INPUT_VALUE  :input
-                              :CLOCK_ENABLE       :input
-                              ; :INPUT_CLK          :input
-                              ; :OUTPUT_CLK         :input
-                              ; :OUTPUT_ENABLE      :input
-                              :D_OUT_0            :input}
-                              ; :D_OUT_1            :input
-                              ; :D_IN_0             :output
-                              ; :D_IN_1             :output
-                             
-                            #(identity 1))
+                                    {
+                                     :PIN_TYPE (bits 6)
+                                     :PULLUP (bits 1)
+                                     :NEG_TRIGGER (bits 1)
+                                     :IO_STANDARD #{:SB_LVCMOS :SB_SSTL2_CLASS_2 :SB_SSTL2_CLASS_1
+                                                    :SB_SSTL18_FULL :SB_SSTL18_HALF :SB_MDDR10
+                                                    :SB_MDDR8 :SB_MDDR4 :SB_MDDR2}}
+                                    {                    
+                                    ; :PACKAGE_PIN         :inout
+                                    ; :LATCH_INPUT_VALUE   :input
+                                     :CLOCK_ENABLE        :input
+                                    ; :INPUT_CLK           :input
+                                    ; :OUTPUT_CLK          :input
+                                    ; :OUTPUT_ENABLE       :input
+                                     :D_OUT_0             :input
+                                    ; :D_OUT_1             :input
+                                     :D_IN_0              :output}
+                                    ; :D_IN_1              :output
+                                    
+                                    #(identity 1)) ; TODO: Make a real sim function
 
         _ (clojure.pprint/pprint "Defining io-1")
-        io-1 (io-device {:PIN_TYPE #b000000 :PULLUP #b0 :IO_STANDARD :SB_LVCMO})
+        io-1 (io-device {:PIN_TYPE #b000000 :PULLUP #b0 :IO_STANDARD :SB_LVCMOS})
 
         _ (clojure.pprint/pprint "Defining mod")
         mod (modulize :root
                       {:x (fnk [x] (inc x))
-                       :y (fnk [x] (io-1 {
-                                          :D_OUT_0 x 
+                       :y (fnk [x] (io-1 { :D_OUT_0 x 
                                           :CLOCK_ENABLE :piplin.primitives/unconnected
                                           :INPUT_CLK :piplin.primitives/clock}))}
+                      ;;  :y (io-1 { :D_OUT_0 :x 
+                      ;;             :CLOCK_ENABLE :piplin.primitives/unconnected
+                      ;;             :INPUT_CLK :piplin.primitives/clock})}
                       {:x ((uintm 8) 0)})
         _ (clojure.pprint/pprint "Compiling mod")
         compiled (compile-root mod)

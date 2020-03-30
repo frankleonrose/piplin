@@ -62,7 +62,7 @@
 (defn make-primitive
   "Takes a keyword hierarchical name and sim function and returns the primitive
   AST node."
-  [primitive-name instance-name parameters inputs output-type sim-fn]
+  [primitive-name instance-name parameters wires output-type sim-fn]
   ; The bundle in the following statement should represent the output values of the primitive?
   (clojure.pprint/pprint parameters)
   
@@ -71,7 +71,8 @@
 
   (alter-value (mkast output-type :primitive [] sim-fn)
                merge
-               {::primitive (primitive-verilog primitive-name instance-name parameters inputs)}))
+               {; ::outputs (map first (filter (comp (partial = :output) second) wires))
+                ::primitive (primitive-verilog primitive-name instance-name parameters wires)}))
 
 ;  SB_IO #(
 ;         .PIN_TYPE (SB_IO_TYPE_SIMPLE_INPUT) 
@@ -135,17 +136,23 @@
                                 (str "Parameter " p# " has value " pv# ". Value must be one of " (p# ~parameter-defs))
                                 :else nil))]
         (if (some parameter-check# parameters#)
-         (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
-       (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
-       (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output
+          (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
+        (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
+        (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output
                   (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~@input-symbols])
                   (let [instance-name# (keyword (gensym (str ~primitive-name "_")))
                         output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; (uintm 1) is 1 wire output type
                                                            (filter (comp #{:output :inout} second) ~wire-defs))))]
                     (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
                       (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map output-type# ~sim-fn)
+                            port# (piplin.modules/make-port* 
+                                    piplin.modules/*current-module*
+                                    (typeof instance#)
+                                    :primitive)                            
                             _# (clojure.pprint/pprint ["Type of:" (typeof instance#)])
-                            state-elements# {piplin.modules/*current-module* {:piplin.modules/fn instance#}}
+                            state-elements# {piplin.modules/*current-module* 
+                                             {:piplin.modules/fn instance#
+                                              :piplin.modules/port port#}}
                             result# {}] ; TODO What is the result? The Bundle of wires such that consumers can connect (?)
                         (when (bound? #'piplin.modules/*state-elements*)
                           (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])
