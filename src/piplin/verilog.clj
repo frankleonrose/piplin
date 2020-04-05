@@ -988,6 +988,20 @@
                     port-names
                     (map compiled-module reg-keys))
 
+        ; Generate primitive output as ports in name-table and as Verilog code
+        [primitive-output-names primitive-outputs]
+        (reduce (fn [[name-table vcode] [path expr]]
+                  (let [outputs (keys (:schema (typeof (:piplin.modules/fn expr))))]
+                    (reduce (fn [[name-table vcode] output]
+                              (let [name (join "_" (map name (conj path output)))
+                                    port (piplin.modules/make-port*
+                                          (conj path output)
+                                          (uintm 1)
+                                          :primitive)]
+                                [(assoc name-table port name) (str vcode "  wire " name ";\n")]))
+                            [name-table vcode] outputs)))
+                [{} ""] primitives)
+
         ;Compile the main logic
         ;collect all scalar roots
         scalar-roots (map (comp :piplin.modules/fn second) compiled-module)
@@ -1006,7 +1020,7 @@
              ;could insert a filter here to allow DCE to work
              (reduce (fn [[name-table text] expr]
                        (verilog expr name-table text))
-                     [(merge port-names input-names) ""]))
+                     [(merge port-names input-names primitive-output-names) ""]))
         ;string containing the register assigns
         reg-assigns (register-assignments
                      name-table
@@ -1016,18 +1030,10 @@
                                         :piplin.modules/init))
                           (remove (comp (partial = :primitive) :op value :piplin.modules/fn))))
 
-        [_ primitive-outputs] (reduce (fn [[name-table vcode] [path expr]]
-                                        (let [outputs (:piplin.primitives/outputs (value (:piplin.modules/fn expr)))]
-                                          (reduce (fn [[name-table vcode] output]
-                                                    (let [name (join "_" (map name (conj path output)))]
-                                                      [(assoc name-table output name) (str vcode "\n  wire " name ";")]))
-                                              [name-table vcode] outputs)))
-                                      [name-table ""] primitives)
-        
-        [_ primitive-instances] (reduce (fn [[name-table vcode] [_ expr]]
-                                          (let [gen-primitive (:piplin.primitives/primitive (value (:piplin.modules/fn expr)))]
-                                            [name-table (str vcode (gen-primitive name-table))]))
-                                        [name-table ""] primitives)
+        primitive-instances (reduce (fn [vcode [_ expr]]
+                                      (let [gen-primitive (:piplin.primitives/primitive (value (:piplin.modules/fn expr)))]
+                                        (str vcode (gen-primitive name-table))))
+                                    "" primitives)
         
         ;string containing the memory stores
         memory-stores (memory-stores

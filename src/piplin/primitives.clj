@@ -45,24 +45,27 @@
             :else (piplin.verilog/lookup-expr name-table v))]
       (str "." (name k) "(" input-value ")"))))
 
-(defn primitive-verilog [primitive-name instance-name parameters inputs]
-  (fn [name-table]
-    (clojure.pprint/pprint ["verilog inputs" (:D_OUT_0 inputs)])
-    (clojure.pprint/pprint ["verilog lookup" (piplin.verilog/lookup-expr name-table (:D_OUT_0 inputs))])
-    (str
-     "  " primitive-name " #(\n    "
-     ; TODO if type is set, check valid and stringize value. 
-     ; If type is bits, lookup expression to get constant
-     (join ",\n    " (filter some? (map primitive-parameter parameters)))
-     ")\n"
-     "    " (name instance-name) " (\n    "
-     (join ",\n    " (filter some? (map (partial primitive-input name-table) inputs)))
-     ");\n")))
+(defn primitive-output [instance-name k]
+  (str "." (name k) "(" (str instance-name "_" (name k)) ")"))
+
+(defn primitive-verilog [primitive-name instance-name parameters inputs outputs]
+  (let [path-name (join "_" (map name piplin.modules/*current-module*))]
+    (fn [name-table]
+      (str
+        "  " primitive-name " #(\n    "
+        ; TODO if type is set, check valid and stringize value. 
+        ; If type is bits, lookup expression to get constant
+        (join ",\n    " (filter some? (map primitive-parameter parameters)))
+        ")\n"
+        "    " (name instance-name) " (\n    "
+        (join ",\n    " (filter some? (concat (map (partial primitive-input name-table) inputs)
+                                              (map (partial primitive-output path-name) outputs))))
+        ");\n"))))
 
 (defn make-primitive
   "Takes a keyword hierarchical name and sim function and returns the primitive
   AST node."
-  [primitive-name instance-name parameters wires output-type sim-fn]
+  [primitive-name instance-name parameters input-map outputs output-type sim-fn]
   ; The bundle in the following statement should represent the output values of the primitive?
   (clojure.pprint/pprint parameters)
   
@@ -71,8 +74,8 @@
 
   (alter-value (mkast output-type :primitive [] sim-fn)
                merge
-               {; ::outputs (map first (filter (comp (partial = :output) second) wires))
-                ::primitive (primitive-verilog primitive-name instance-name parameters wires)}))
+               {::primitive (primitive-verilog primitive-name instance-name parameters input-map outputs)}))
+                
 
 ;  SB_IO #(
 ;         .PIN_TYPE (SB_IO_TYPE_SIMPLE_INPUT) 
@@ -128,8 +131,9 @@
   [primitive-name parameter-defs wire-defs sim-fn]
   (let [inputs (map first (filter (comp #{:input} second) wire-defs))
         input-symbols (map symbol inputs)
-        input-map (into {} (map #(identity [% (symbol %)]) inputs))]
-    `(fn [parameters#] ; TODO handle parameters - add to primitive Verilog output
+        input-map (into {} (map (juxt identity symbol) inputs))
+        outputs (vec (map first (filter (comp #{:output} second) wire-defs)))]
+    `(fn [parameters#]
       (let [parameter-check# (fn [[p# pv#]]
                               (cond
                                 (and (set? (p# ~parameter-defs)) (not ((p# ~parameter-defs) pv#)))
@@ -144,16 +148,19 @@
                         output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; (uintm 1) is 1 wire output type
                                                            (filter (comp #{:output :inout} second) ~wire-defs))))]
                     (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
-                      (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map output-type# ~sim-fn)
+                      (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map ~outputs output-type# ~sim-fn)
                             port# (piplin.modules/make-port* 
-                                    piplin.modules/*current-module*
-                                    (typeof instance#)
-                                    :primitive)                            
+                                   piplin.modules/*current-module*
+                                   (typeof instance#)
+                                   :primitive)                            
                             _# (clojure.pprint/pprint ["Type of:" (typeof instance#)])
                             state-elements# {piplin.modules/*current-module* 
                                              {:piplin.modules/fn instance#
                                               :piplin.modules/port port#}}
-                            result# {}] ; TODO What is the result? The Bundle of wires such that consumers can connect (?)
+                            result# (promote output-type#  {:D_IN_0 (piplin.modules/make-port* 
+                                                                      (conj piplin.modules/*current-module* :D_IN_0)
+                                                                      (uintm 1)
+                                                                      :primitive)})]
                         (when (bound? #'piplin.modules/*state-elements*)
                           (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])
                           (swap! piplin.modules/*state-elements* merge state-elements#))
