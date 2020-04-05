@@ -40,7 +40,7 @@
   (is (= -2 (* ((sints 8) 1)
                ((sints 8) -2))))
   (is (= 2 (* ((sints 8) -1)
-               ((sints 8) -2))))
+              ((sints 8) -2))))
   (is (= 127 (+ ((sints 8) 100)
                 ((sints 8) 100)))))
 
@@ -120,7 +120,7 @@
     {:x (fnk [x] (inc x))
      :y (fnk [x] (sign-extend m x))}
     {:x (piplin.types.sints/min-value (sints n))
-     :y (piplin.types.sints/min-value (sints m))} ))
+     :y (piplin.types.sints/min-value (sints m))}))
 
 (deftest sints-extender-verilog
   (icarus-test (verify

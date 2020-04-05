@@ -301,12 +301,12 @@
                 (merge reg-inits
                        (plumb/map-vals #(%) wire-fns)))]
     (reductions 
-      (fn [state _]
-        (let [reg-state (binding [*sim-state* state]
-                          (merge state
-                                 (plumb/map-vals #(%) store-fns)
-                                 (plumb/map-vals #(%) reg-fns)))]  
-          (binding [*sim-state* reg-state]
-            (merge reg-state
+     (fn [state _]
+       (let [reg-state (binding [*sim-state* state]
+                         (merge state
+                                (plumb/map-vals #(%) store-fns)
+                                (plumb/map-vals #(%) reg-fns)))]  
+         (binding [*sim-state* reg-state]
+           (merge reg-state
                   (plumb/map-vals #(%) wire-fns)))))
-      inits (range cycles))))
+     inits (range cycles))))
