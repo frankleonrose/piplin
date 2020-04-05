@@ -142,25 +142,22 @@
         (if (some parameter-check# parameters#)
           (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
         (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
-        (plumb/fnk [~@input-symbols] ; TODO Declare input-symbols - add to primitive Verilog output
+        (plumb/fnk [~@input-symbols]
                   (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~@input-symbols])
                   (let [instance-name# (keyword (gensym (str ~primitive-name "_")))
-                        output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; (uintm 1) is 1 wire output type
+                        output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; TODO(frankleonrose): Replace (uintm 1) with actual output type
                                                            (filter (comp #{:output :inout} second) ~wire-defs))))]
                     (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
                       (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map ~outputs output-type# ~sim-fn)
-                            port# (piplin.modules/make-port* 
-                                   piplin.modules/*current-module*
-                                   (typeof instance#)
-                                   :primitive)                            
                             _# (clojure.pprint/pprint ["Type of:" (typeof instance#)])
                             state-elements# {piplin.modules/*current-module* 
-                                             {:piplin.modules/fn instance#
-                                              :piplin.modules/port port#}}
-                            result# (promote output-type#  {:D_IN_0 (piplin.modules/make-port* 
-                                                                      (conj piplin.modules/*current-module* :D_IN_0)
-                                                                      (uintm 1)
-                                                                      :primitive)})]
+                                             {:piplin.modules/fn instance#}}
+                            output-map# (apply merge (map #(identity {%
+                                                                      (piplin.modules/make-port* 
+                                                                        (conj piplin.modules/*current-module* %)
+                                                                        (uintm 1)
+                                                                        :primitive)}) ~outputs))  
+                            result# (promote output-type# output-map#)]
                         (when (bound? #'piplin.modules/*state-elements*)
                           (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])
                           (swap! piplin.modules/*state-elements* merge state-elements#))
