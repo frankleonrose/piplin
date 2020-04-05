@@ -812,10 +812,12 @@
   (cond
     (pipinst? expr)
     [(verilog-repr expr) ""]
+    
     (= :use-core-impl (piplin-clojure-dispatch expr))
     (do
       (println "WARNING: trying to render clojure type, skipping")
       [nil ""])
+    
     :else
     (let [name (if-let [let-name (-> expr meta :let-name)]
                  (gen-verilog-name let-name)
