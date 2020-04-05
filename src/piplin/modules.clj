@@ -214,8 +214,11 @@
   (find-exprs compiled-module
               #(= :input (-> % value :port-type))))
 
-(def ^{:arglists (list '[name type])}
-  input #(make-port* %1 %2 :input))
+;; TODO(frankleonrose): Remove unused weirdly formed function?
+;; It's the only introduction of a different port type beyond :register,
+;; other than my :primitive. Apparently unused. David's WIP?
+;; (def ^{:arglists (list '[name type])}
+;;   input #(make-port* %1 %2 :input))
 
 (defn- make-port->mem-name
   "Takes a module and return a map from port to
