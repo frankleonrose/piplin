@@ -191,6 +191,9 @@
   [value]
   (not (or (store? value) (register? value) (primitive? value))))
 
+(defn input [name type]
+  (make-port* name type :input))
+
 (defn compile-root
   [module & inputs]
   (assert (::module (meta module)) "Must pass a module as first argument")
