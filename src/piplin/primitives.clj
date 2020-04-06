@@ -72,9 +72,9 @@
   (when-not (every? #(or (keyword? (second %)) (pipinst? (second %))) parameters)
     (throw+ (str "Some parameters of " instance-name " are not constants.")))
 
-  (alter-value (mkast output-type :primitive [] sim-fn)
+  (alter-value (mkast output-type ::primitive-instance [] sim-fn)
                merge
-               {::primitive (primitive-verilog primitive-name instance-name parameters input-map outputs)}))
+               {::primitive-verilog (primitive-verilog primitive-name instance-name parameters input-map outputs)}))
                 
 
 ;  SB_IO #(
@@ -120,7 +120,7 @@
   any function:
   (modulize
     (let [io_1 (io_primitive parameters)]
-      {:primitive-out (:output (io_1 :input 123))
+      {:module-wire (:output-name (io_1 :input-name 123))
       }))
   "
   ; For all of the parameters, assign them at instantiation
@@ -156,7 +156,7 @@
                                                                       (piplin.modules/make-port* 
                                                                         (conj piplin.modules/*current-module* %)
                                                                         (uintm 1)
-                                                                        :primitive)}) ~outputs))  
+                                                                        ::primitive-port)}) ~outputs))  
                             result# (promote output-type# output-map#)]
                         (when (bound? #'piplin.modules/*state-elements*)
                           (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])

@@ -174,7 +174,7 @@
 (defn primitive?
   "Returns true if the given map represents a primitive ast node"
   [value]
-  (= :piplin.primitives/primitive (::op value)))
+  (= :piplin.primitives/primitive-instance (:op value)))
 
 (defn- store?
   "Returns true if the given map represents a store ast node"
@@ -264,7 +264,7 @@
    to compilers, as they're the 3 kinds of runnable code."
   [compiled-module]
   (let [reg-keys (->> compiled-module
-                      (filter (comp #(and (register? %) (not= :primitive ((comp :port-type value ::port) %))) second))
+                      (filter (comp #(and (register? %) (not= :piplin.primitives/primitive-port ((comp :port-type value ::port) %))) second))
                       (map first))
         store-keys (->> compiled-module
                         (filter (comp store? second))

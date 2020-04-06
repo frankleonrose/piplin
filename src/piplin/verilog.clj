@@ -168,11 +168,6 @@
   [ast name-lookup]
   [(verilog-repr ast)])
 
-(defmethod verilog-of :primitive
-  [ast name-lookup]
-  ["Primitive Output"])
-  ;; [(verilog-repr ast)])
-
 (defmethod verilog-of :port
   [ast name-lookup]
   [(lookup-expr name-lookup ast)])
@@ -931,7 +926,7 @@
               (port-names port)
                 ;must be using an immediate by contract
               (verilog-repr init))))
-         (remove #(= :primitive (-> % :piplin.modules/port value :port-type)) module-regs))))
+         (remove #(= :piplin.primitives/primitive-port (-> % :piplin.modules/port value :port-type)) module-regs))))
 
 (defn register-assignments
   "This takes a name-table and a seq of register configurations
@@ -969,7 +964,7 @@
 
 (defn ->verilog
   [compiled-module outputs]
-  (let [primitives (into {} (remove (comp (partial not= :primitive) :op value :piplin.modules/fn second) compiled-module))
+  (let [primitives (into {} (filter (comp piplin.modules/primitive? value :piplin.modules/fn second) compiled-module))
         outputs (into {} (remove (fn [[k _]] (not (compiled-module k))) outputs))
         ;seq of all the input ports used in the module
         module-inputs (find-inputs compiled-module)
@@ -999,7 +994,7 @@
                                     port (piplin.modules/make-port*
                                           (conj path output)
                                           (uintm 1)
-                                          :primitive)]
+                                          :piplin.primitives/primitive-port)]
                                 [(assoc name-table port name) (str vcode "  wire " name ";\n")]))
                             [name-table vcode] outputs)))
                 [{} ""] primitives)
@@ -1008,6 +1003,7 @@
         ;collect all scalar roots
         scalar-roots (map (comp :piplin.modules/fn second) compiled-module)
         ; scalar-roots (remove (comp (partial = :primitive) :op value) scalar-roots)
+        scalar-roots (remove (comp piplin.modules/primitive? value) scalar-roots)
         memory-roots (mapcat (comp (juxt
                                     :piplin.modules/index
                                     :piplin.modules/write-enable?
@@ -1028,12 +1024,11 @@
                      name-table
                      (->> reg-keys
                           (map compiled-module)
-                          (remove (comp array?
-                                        :piplin.modules/init))
-                          (remove (comp (partial = :primitive) :op value :piplin.modules/fn))))
+                          (remove (comp array? :piplin.modules/init))
+                          (remove (comp piplin.modules/primitive? value :piplin.modules/fn))))
 
         primitive-instances (reduce (fn [vcode [_ expr]]
-                                      (let [gen-primitive (:piplin.primitives/primitive (value (:piplin.modules/fn expr)))]
+                                      (let [gen-primitive (:piplin.primitives/primitive-verilog (value (:piplin.modules/fn expr)))]
                                         (str vcode (gen-primitive name-table))))
                                     "" primitives)
         
@@ -1110,8 +1105,7 @@
 (defn verify
   [module cycles]
   (let [compiled (compile-root module)
-        compiled (into {} (remove (comp (partial = :primitive) :op value :piplin.modules/fn second) compiled))
-        compiled (with-meta compiled {:piplin.modules/compiled true})
+        compiled (with-meta (into {} (remove (comp piplin.modules/primitive? value :piplin.modules/fn second) compiled)) (meta compiled))
         ;These are the keys in the `compiled` map
         ;that correspond to scalar outputs
         scalar-output-keys (->> compiled
