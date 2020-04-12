@@ -810,7 +810,7 @@
     
     (= :use-core-impl (piplin-clojure-dispatch expr))
     (do
-      (println "WARNING: trying to render clojure type, skipping")
+      (println "WARNING: trying to render clojure type, skipping" expr)
       [nil ""])
     
     :else
@@ -988,12 +988,14 @@
         ; Generate primitive output as ports in name-table and as Verilog code
         [primitive-output-names primitive-outputs]
         (reduce (fn [[name-table vcode] [path expr]]
-                  (let [outputs (keys (:schema (typeof (:piplin.modules/fn expr))))]
+                  (let [schema (:schema (typeof (:piplin.modules/fn expr)))
+                        outputs (keys schema)]
                     (reduce (fn [[name-table vcode] output]
                               (let [name (join "_" (map name (conj path output)))
+                                    port-data-type (output schema)
                                     port (piplin.modules/make-port*
                                           (conj path output)
-                                          (uintm 1)
+                                          port-data-type
                                           :piplin.primitives/primitive-port)]
                                 [(assoc name-table port name) (str vcode "  wire " name ";\n")]))
                             [name-table vcode] outputs)))
@@ -1002,7 +1004,6 @@
         ;Compile the main logic
         ;collect all scalar roots
         scalar-roots (map (comp :piplin.modules/fn second) compiled-module)
-        ; scalar-roots (remove (comp (partial = :primitive) :op value) scalar-roots)
         scalar-roots (remove (comp piplin.modules/primitive? value) scalar-roots)
         memory-roots (mapcat (comp (juxt
                                     :piplin.modules/index

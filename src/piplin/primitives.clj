@@ -129,41 +129,40 @@
   ;   as the output of the function.
   ; Make function expect all the inputs as inputs
   [primitive-name parameter-defs wire-defs sim-fn]
-  (let [inputs (map first (filter (comp #{:input} second) wire-defs))
+  (let [typed-wires (into {} (map (fn [[k v]] 
+                                    [k (if (keyword? v) 
+                                         {:direction v :type (piplin.types.bits/bits 1)} 
+                                         {:direction (first v) :type (second v)})]) 
+                                  wire-defs))
+        inputs (map first (filter (comp #{:input} :direction second) typed-wires))
         input-symbols (map symbol inputs)
         input-map (into {} (map (juxt identity symbol) inputs))
         outputs (vec (map first (filter (comp #{:output} second) wire-defs)))]
     `(fn [parameters#]
-      (let [parameter-check# (fn [[p# pv#]]
-                              (cond
-                                (and (set? (p# ~parameter-defs)) (not ((p# ~parameter-defs) pv#)))
-                                (str "Parameter " p# " has value " pv# ". Value must be one of " (p# ~parameter-defs))
-                                :else nil))]
-        (if (some parameter-check# parameters#)
-          (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
-        (clojure.pprint/pprint ["Function capturing parameters returning fnk" parameters#])
-        (plumb/fnk [~@input-symbols]
-                  (clojure.pprint/pprint ["Fnk taking input and binding primitive" ~@input-symbols])
-                  (let [instance-name# (keyword (gensym (str ~primitive-name "_")))
-                        output-type# (bundle (into {} (map #(identity [(first %) (uintm 1)]) ; TODO(frankleonrose): Replace (uintm 1) with actual output type
-                                                           (filter (comp #{:output :inout} second) ~wire-defs))))]
-                    (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
-                      (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map ~outputs output-type# ~sim-fn)
-                            _# (clojure.pprint/pprint ["Type of:" (typeof instance#)])
-                            state-elements# {piplin.modules/*current-module* 
-                                             {:piplin.modules/fn instance#}}
-                            output-map# (apply merge (map #(identity {%
-                                                                      (piplin.modules/make-port* 
-                                                                        (conj piplin.modules/*current-module* %)
-                                                                        (uintm 1)
-                                                                        ::primitive-port)}) ~outputs))  
-                            result# (promote output-type# output-map#)]
-                        (when (bound? #'piplin.modules/*state-elements*)
-                          (clojure.pprint/pprint ["Primitive state-elements:" instance-name# state-elements#])
-                          (swap! piplin.modules/*state-elements* merge state-elements#))
-                        result#))))))))
-
-; (device-primitive 
-;   "SB_IO"
-;   {:PACKAGE_PIN        :inout})
-
+       (let [parameter-check# (fn [[p# pv#]]
+                                (cond
+                                  (and (set? (p# ~parameter-defs)) (not ((p# ~parameter-defs) pv#)))
+                                  (str "Parameter " p# " has value " pv# ". Value must be one of " (p# ~parameter-defs))
+                                  :else nil))
+             typed-wires# ~typed-wires     
+             outputs# ~outputs]  
+         (if (some parameter-check# parameters#)
+           (throw+ (error ~primitive-name " parameter errors " (remove nil? (map parameter-check# parameters#)))))
+         (plumb/fnk [~@input-symbols]
+                    (let [instance-name# (keyword (gensym (str ~primitive-name "_")))
+                          output-type# (bundle (into {} (map (fn [[k# v#]] [k# (:type v#)])
+                                                             (filter (comp #{:output :inout} :direction second) typed-wires#))))]
+                      (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
+                        (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map outputs# output-type# ~sim-fn)
+                              state-elements# {piplin.modules/*current-module* 
+                                               {:piplin.modules/fn instance#}}
+                              output-map# (apply merge (map #(identity {%
+                                                                        (piplin.modules/make-port* 
+                                                                         (conj piplin.modules/*current-module* %)
+                                                                         (get-in typed-wires# [% :type])
+                                                                         ::primitive-port)}) 
+                                                            outputs#))  
+                              result# (promote output-type# output-map#)]
+                          (when (bound? #'piplin.modules/*state-elements*)
+                            (swap! piplin.modules/*state-elements* merge state-elements#))
+                          result#))))))))
