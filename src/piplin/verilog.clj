@@ -997,7 +997,8 @@
                                           (conj path output)
                                           port-data-type
                                           :piplin.primitives/primitive-port)]
-                                [(assoc name-table port name) (str vcode "  wire " name ";\n")]))
+                                
+                                [(assoc name-table port name) (str vcode "  wire " (-> port-data-type bit-width-of array-width-decl) \space name ";\n")]))
                             [name-table vcode] outputs)))
                 [{} ""] primitives)
 

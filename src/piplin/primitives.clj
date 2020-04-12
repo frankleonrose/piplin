@@ -137,7 +137,7 @@
         inputs (map first (filter (comp #{:input} :direction second) typed-wires))
         input-symbols (map symbol inputs)
         input-map (into {} (map (juxt identity symbol) inputs))
-        outputs (vec (map first (filter (comp #{:output} second) wire-defs)))]
+        outputs (vec (map first (filter (comp #{:output} :direction second) typed-wires)))]
     `(fn [parameters#]
        (let [parameter-check# (fn [[p# pv#]]
                                 (cond

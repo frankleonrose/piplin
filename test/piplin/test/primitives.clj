@@ -30,7 +30,7 @@
                                     ; :OUTPUT_ENABLE       :input
                                      :D_OUT_0             :input
                                     ; :D_OUT_1             :input
-                                      :D_IN_0              :output
+                                      :D_IN_0              [:output (piplin.types.bits/bits 2)]
                                       :D_IN_1              :output}
                                     
                                     #(identity 1)) ; TODO: Make a real sim function
