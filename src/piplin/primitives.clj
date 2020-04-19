@@ -62,21 +62,6 @@
                                               (map (partial primitive-output path-name) outputs))))
         ");\n"))))
 
-(defn make-primitive
-  "Takes a keyword hierarchical name and sim function and returns the primitive
-  AST node."
-  [primitive-name instance-name parameters input-map outputs output-type sim-fn]
-  ; The bundle in the following statement should represent the output values of the primitive?
-  (clojure.pprint/pprint parameters)
-  
-  (when-not (every? #(or (keyword? (second %)) (pipinst? (second %))) parameters)
-    (throw+ (str "Some parameters of " instance-name " are not constants.")))
-
-  (alter-value (mkast output-type ::primitive-instance [] sim-fn)
-               merge
-               {::primitive-verilog (primitive-verilog primitive-name instance-name parameters input-map outputs)}))
-                
-
 ;  SB_IO #(
 ;         .PIN_TYPE (SB_IO_TYPE_SIMPLE_INPUT) 
 ;         .PULLUP (1 'b1)
@@ -153,7 +138,13 @@
                           output-type# (bundle (into {} (map (fn [[k# v#]] [k# (:type v#)])
                                                              (filter (comp #{:output :inout} :direction second) typed-wires#))))]
                       (binding [piplin.modules/*current-module* (conj piplin.modules/*current-module* instance-name#)]
-                        (let [instance# (make-primitive ~primitive-name instance-name# parameters# ~input-map outputs# output-type# ~sim-fn)
+                        (let [instance#
+                              (do
+                                (when-not (every? #(or (keyword? (second %)) (pipinst? (second %))) parameters#)
+                                  (throw+ (str "Some parameters of " instance-name# " are not constants.")))
+                                (alter-value (mkast output-type# ::primitive-instance [~@input-symbols] ~sim-fn)
+                                             merge
+                                             {::primitive-verilog (primitive-verilog ~primitive-name instance-name# parameters# ~input-map outputs#)}))
                               state-elements# {piplin.modules/*current-module* 
                                                {:piplin.modules/fn instance#}}
                               output-map# (apply merge (map #(identity {%
