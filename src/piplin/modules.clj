@@ -50,18 +50,26 @@
         (if (pipinst? expr)
           [#(identity expr) []]
           (-> expr
-            meta
-            :sim-factory))]
+              meta
+              :sim-factory))]
     (let [args (:args (value expr))
           arg-fns (map #(make-sim-fn (val %)) args)
-          arg-map (zipmap (keys args)
-                          arg-fns)
+          arg-map (zipmap (keys args) arg-fns)
           fn-vec (map #(get arg-map %) my-args)]
-      (if (= (:op (value expr))
-             :port)
+      (if (= (:op (value expr)) :port)
         (case (:port-type (value expr))
-          :register (fn []
-                      (get *sim-state* (:port (value expr))))
+          :register 
+          (fn [] 
+            (when (nil? (get *sim-state* (:port (value expr))))
+              (throw+ (error "nil port value in *sim-state*. Port: " (:port (value expr)))))
+            (get *sim-state* (:port (value expr))))
+          
+          :piplin.primitives/primitive-port 
+          (fn [] 
+            (when (nil? (get *sim-state* (:port (value expr))))
+              (throw+ (error "nil port value in *sim-state*. Port: " (:port (value expr)))))
+            (get *sim-state* (:port (value expr))))
+          
           (throw (ex-info "Invalid :port-type" (value expr))))
         (fn []
           (apply my-sim-fn (map #(%) fn-vec)))))))
