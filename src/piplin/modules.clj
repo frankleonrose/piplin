@@ -217,6 +217,11 @@
   (find-exprs compiled-module
               #(= :input (-> % value :port-type))))
 
+(defn find-primitive-ports
+  [compiled-module]
+  (find-exprs compiled-module
+              #(= :piplin.primitives/primitive-port (-> % value :port-type))))
+
 ;; TODO(frankleonrose): Remove unused weirdly formed function?
 ;; It's the only introduction of a different port type beyond :register,
 ;; other than my :primitive. Apparently unused. David's WIP?
@@ -269,6 +274,9 @@
   (let [reg-keys (->> compiled-module
                       (filter (comp #(and (register? %) (not= :piplin.primitives/primitive-port ((comp :port-type value ::port) %))) second))
                       (map first))
+        primitive-keys (->> (find-primitive-ports compiled-module)
+                            (map (comp :port value))
+                            (into #{}))
         store-keys (->> compiled-module
                         (filter (comp store? second))
                         (map first))
@@ -276,6 +284,7 @@
                        (filter (comp wire? second))
                        (map first))]
     {:reg-keys reg-keys
+     :primitive-keys primitive-keys
      :store-keys store-keys
      :wire-keys wire-keys}))
 
@@ -292,6 +301,7 @@
   (assert (empty? (find-inputs compiled-module))
           "Cannot have any input ports during simulation")
   (let [{:keys [reg-keys store-keys wire-keys]} (module-keys-by-type compiled-module)
+  (let [{:keys [reg-keys store-keys wire-keys primitive-keys]} (module-keys-by-type compiled-module)
         wire-fns (plumb/map-vals (comp make-sim-fn ::fn)
                                  (select-keys compiled-module wire-keys))
         reg-fns (plumb/for-map [[k {f ::fn}] (select-keys compiled-module reg-keys)
